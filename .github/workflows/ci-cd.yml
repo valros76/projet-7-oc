@@ -1,0 +1,80 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ "dev", "master" ]
+  pull_request:
+    branches: [ "dev", "master" ]
+
+jobs:
+  # 1. Tests et qualité (exécuté à chaque push / PR)
+  test-and-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+          cache: true
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Type check & Lint
+        run: npx tsc --noEmit
+
+      - name: Run Unit Tests
+        run: bun run test:unit
+
+  # 2. Build de production (Uniquement sur master si les tests passent)
+  build:
+    needs: test-and-lint
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/master'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+          cache: true
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Build Nuxt Application
+        run: bun run build
+
+      - name: Upload production artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: nuxt-production-build
+          path: .output/
+
+  # 3. Release Automatisée (Repris de votre ancien projet)
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/master'
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Semantic Release
+        run: npx -p semantic-release -p @semantic-release/commit-analyzer -p @semantic-release/release-notes-generator -p @semantic-release/changelog -p @semantic-release/git -p @semantic-release/github semantic-release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
