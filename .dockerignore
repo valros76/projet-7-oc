@@ -1,0 +1,9 @@
+node_modules
+.nuxt
+.output
+.git
+.env
+.DS_Store
+Dockerfile
+docker-compose.yml
+README.md

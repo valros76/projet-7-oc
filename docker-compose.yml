@@ -1,0 +1,37 @@
+services:
+  # Service de Base de Données MySQL
+  db:
+    image: mysql:8.0
+    container_name: webdevoo_mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: webdevoo_lead
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-prootpassword"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Service de l'Application Nuxt 4
+  app:
+    build: .
+    container_name: webdevoo_app
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=mysql://root:rootpassword@db:3306/webdevoo_lead
+      - JWT_ACCESS_SECRET=votre_cle_secrete_access_locale
+      - JWT_REFRESH_SECRET=votre_cle_secrete_refresh_locale
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  mysql_data:
