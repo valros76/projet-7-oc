@@ -26,9 +26,16 @@ services:
       - "3000:3000"
     environment:
       - NODE_ENV=development
-      - DATABASE_URL=mysql://root:rootpassword@db:3306/webdevoo_lead
+      - DB_HOST=db
+      - DB_USER=root
+      - DB_PASSWORD=rootpassword
+      - DB_NAME=webdevoo_lead
+      - DB_PORT=3306
       - JWT_ACCESS_SECRET=votre_cle_secrete_access_locale
       - JWT_REFRESH_SECRET=votre_cle_secrete_refresh_locale
+    volumes:
+      - .:/app
+      - /app/node_modules
     depends_on:
       db:
         condition: service_healthy

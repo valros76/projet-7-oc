@@ -12,19 +12,24 @@ webdevoo-lead/
 │   │   └── Navbar.vue                    # (Futur) Barre de navigation principale
 │   ├── composables/                      # Logique métier et réactivité
 │   │   └── auth/
-│   │       └── useAuth.ts                # (Futur) Gestion de l'état d'authentification et des tokens
+│   │       └── useAuth.ts                # Gestion de l'état d'authentification et des tokens
+│   ├── middleware/                       # Middlewares de routage front-end
+│   │   └── auth.ts                       # Protection des routes front-end (authentification requise)
+│   ├── plugins/                          # Plugins d'initialisation et d'interception
+│   │   ├── auth.ts                       # Restauration automatique de session au chargement
+│   │   └── api.ts                        # Client HTTP personnalisé ($api) avec injection Bearer & Refresh auto
 │   ├── pages/                            # Pages de l'application (routage automatique Nuxt)
-│   │   ├── index.vue                     # Page d'accueil / Connexion
-│   │   ├── dashboard.vue                 # (Futur) Tableau de bord administrateur / apporteur
-│   │   └── leads/
-│   │       └── new.vue                   # (Futur) Page de création d'un nouveau lead
+│   │   ├── index.vue                     # Page d'accueil / Connexion / Inscription
+│   │   ├── leads/
+│   │   │   ├── dashboard.vue             # Tableau de bord sécurisé des leads
+│   │   │   └── new.vue                   # (Futur) Page de création d'un nouveau lead
 │   └── app.vue                           # Composant racine de l'application
 ├── server/                               # ⚙️ Back-end & API (Moteur Nitro)
 │   ├── api/                              # Endpoints de l'API REST sécurisée
 │   │   ├── auth/
-│   │   │   ├── login.post.ts             # (Futur) Authentification et génération JWT/Refresh Token
-│   │   │   ├── refresh.post.ts           # (Futur) Renouvellement de l'Access Token
-│   │   │   └── logout.post.ts            # (Futur) Révocation du Refresh Token
+│   │   │   ├── login.post.ts             # Authentification et génération JWT / Refresh Token HttpOnly
+│   │   │   ├── refresh.post.ts           # Renouvellement de l'Access Token
+│   │   │   └── logout.post.ts            # Révocation du Refresh Token et suppression du cookie
 │   │   └── leads/
 │   │       ├── index.get.ts              # (Futur) Liste des leads (sécurisée par rôle)
 │   │       └── index.post.ts             # (Futur) Création sécurisée d'un lead (Requête préparée Drizzle)
@@ -49,4 +54,4 @@ webdevoo-lead/
 ├── playwright.config.ts                  # Configuration de Playwright pour les tests E2E
 ├── README.md                             # Documentation d'exécution, d'installation et choix techniques
 ├── STRUCTURE.md                          # Documentation de l'architecture des fichiers (ce document)
-└── tsconfig.json                          # Configuration de Typescript
+└── tsconfig.json                         # Configuration de Typescript

@@ -37,16 +37,27 @@ Le projet repose sur une architecture moderne basée sur les technologies suivan
 
 ### 2.2 Architecture applicative
 
-L'application repose sur une architecture **Backend For Frontend (BFF)**.
+L'application repose sur une architecture **Backend For Frontend (BFF)** basée sur **Nuxt 4**.
 
-Le serveur Nuxt (Nitro) assure simultanément :
+Le serveur **Nitro** assure simultanément :
 
 - le rendu de l'application ;
 - les routes API ;
 - la gestion de l'authentification ;
 - les échanges avec la base de données.
 
-Cette architecture limite les échanges réseau, simplifie le déploiement et centralise la logique métier.
+Le projet respecte l'organisation recommandée par Nuxt 4, en séparant clairement la logique d'interface utilisateur de la logique serveur.
+
+L'ensemble de l'interface est regroupé dans le répertoire `app/`, qui contient notamment :
+
+- `app/pages/` : les pages de l'application ;
+- `app/components/` : les composants réutilisables ;
+- `app/layouts/` : les différents layouts ;
+- `app/composables/` : les composables Vue ;
+- `app/middleware/` : les middlewares de routage, notamment `middleware/auth.ts` utilisé pour protéger les pages nécessitant une authentification ;
+- `app/plugins/` : les plugins Nuxt, dont `plugins/api.ts` chargé d'initialiser le client HTTP de l'application.
+
+Cette organisation permet de maintenir une architecture claire, modulaire et conforme aux bonnes pratiques de Nuxt 4 tout en facilitant la maintenance et les évolutions du projet.
 
 ### 2.3 Couche de données
 
@@ -59,20 +70,47 @@ L'accès aux données est réalisé exclusivement via **Drizzle ORM**, qui offre
 - une protection native contre les injections SQL ;
 - une maintenance facilitée grâce au mapping des tables.
 
-### 2.4 Authentification
+### 2.4 Authentification et client HTTP
 
-L'authentification repose sur un système de double jeton :
+L'authentification repose sur un système de double jeton composé :
 
-- **Access Token (JWT)** à durée de vie courte ;
-- **Refresh Token** stocké de manière sécurisée en base de données.
+- d'un **Access Token (JWT)** à durée de vie courte ;
+- d'un **Refresh Token** sécurisé, stocké côté serveur et transmis au navigateur via un cookie **HttpOnly**.
 
-Cette architecture permet :
+Le front-end s'appuie sur un client HTTP personnalisé (`$api`) développé à partir de **ofetch** et initialisé via le plugin `app/plugins/api.ts`.
 
-- une authentification rapide ;
-- la révocation immédiate d'une session utilisateur ;
-- une meilleure protection en cas de compromission d'un jeton.
+Ce client centralise l'ensemble des communications avec les API et assure automatiquement plusieurs mécanismes de sécurité :
 
-### 2.5 Contraintes techniques
+- ajout automatique de l'en-tête `Authorization: Bearer <token>` sur chaque requête authentifiée ;
+- interception des réponses HTTP `401 Unauthorized` ;
+- demande automatique d'un nouveau jeton d'accès grâce au Refresh Token présent dans le cookie HttpOnly ;
+- mise à jour de la session utilisateur lorsque le rafraîchissement est réussi ;
+- rejeu automatique de la requête ayant échoué, de manière totalement transparente pour l'utilisateur.
+
+Cette approche améliore l'expérience utilisateur tout en limitant les interruptions de session et en centralisant toute la logique d'authentification dans un unique client HTTP.
+
+### 2.5 Structure des pages
+
+L'interface utilisateur est organisée selon la structure de routage de Nuxt 4.
+
+La page d'accueil (`app/pages/index.vue`) constitue désormais le point d'entrée principal de l'application.
+
+Elle regroupe les fonctionnalités d'authentification grâce à une interface composée d'onglets permettant de basculer entre :
+
+- la connexion ;
+- l'inscription.
+
+Cette approche évite la multiplication des pages dédiées (`/login` et `/register`) tout en offrant une expérience utilisateur plus fluide.
+
+Les fonctionnalités accessibles uniquement aux utilisateurs authentifiés sont regroupées dans des pages dédiées, notamment :
+
+- `app/pages/leads/dashboard.vue`
+
+L'accès à ces pages est protégé par le middleware `app/middleware/auth.ts`, qui vérifie la présence d'une session valide avant d'autoriser la navigation.
+
+Cette séparation distingue clairement les pages publiques des espaces sécurisés de l'application.
+
+### 2.6 Contraintes techniques
 
 L'application est destinée à être hébergée sur **PlanetHoster**, via **cPanel / Application Manager**.
 

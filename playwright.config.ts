@@ -12,7 +12,8 @@ export default defineConfig<ConfigOptions>({
 
   use: {
     trace: 'on-first-retry',
-    // Configuration spécifique pour lier Playwright au serveur de développement Nuxt
+    baseURL: 'http://localhost:3000', 
+    
     nuxt: {
       rootDir: fileURLToPath(new URL('.', import.meta.url)),
     },

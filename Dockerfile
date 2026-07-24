@@ -1,25 +1,14 @@
-# --- Étape 1 : Le Builder ---
-FROM oven/bun:1 AS builder
+FROM oven/bun:1
 WORKDIR /app
 
-# Copie des fichiers de configuration des dépendances
+# 1. Copie des fichiers de dépendances et installation
 COPY package.json bun.lockb* ./
 RUN bun install
 
-# Copie du reste du code source
+# 2. Copie du reste du code source (incluant drizzle.config.ts)
 COPY . .
-
-# Compilation de Nuxt
-RUN bun run build
-
-# --- Étape 2 : L'image de production ---
-FROM oven/bun:1-slim
-WORKDIR /app
-
-# Copie uniquement des fichiers indispensables générés par le builder
-COPY --from=builder /app/.output ./.output
-COPY --from=builder /app/package.json ./
 
 EXPOSE 3000
 
-CMD ["bun", ".output/server/index.mjs"]
+# 3. Lancement en mode développement (Hot-reload)
+CMD ["bun", "run", "dev"]
