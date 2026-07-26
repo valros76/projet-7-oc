@@ -1,5 +1,10 @@
+/// <reference types="node" />
 import { defineConfig } from 'drizzle-kit'
-import 'dotenv/config'
+import * as dotenv from 'dotenv'
+
+if (!process.env.DB_HOST || process.env.DB_HOST === 'localhost') {
+  dotenv.config()
+}
 
 export default defineConfig({
   schema: './server/database/schema.ts',

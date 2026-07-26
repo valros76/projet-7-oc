@@ -3,14 +3,18 @@ import { test, expect } from '@playwright/test'
 test('user can switch between login and register views', async ({ page }) => {
   await page.goto('/')
 
-  // Par défaut, le formulaire de connexion doit être visible
-  await expect(page.locator('button:has-text("Se connecter")')).toBeVisible()
+  // 1. Par défaut, le formulaire de connexion doit être visible (bouton onglet Connexion actif)
+  const loginTab = page.locator('button.tab-btn', { hasText: 'Connexion' })
+  await expect(loginTab).toBeVisible()
 
-  // Cliquer sur le bouton pour basculer vers l'inscription
-  await page.click('button:has-text("Inscription")')
+  // 2. Cliquer explicitement sur l'onglet "Inscription"
+  const registerTab = page.locator('button.tab-btn', { hasText: 'Inscription' })
+  await registerTab.click()
 
-  // Vérifier que les champs spécifiques à l'inscription s'affichent correctement
-  await expect(page.locator('input[placeholder="Prénom"]')).toBeVisible()
+  // 3. Attendre et vérifier que les champs spécifiques à l'inscription s'affichent
+  const firstNameInput = page.locator('input[placeholder="Prénom"]')
+  await expect(firstNameInput).toBeVisible()
+  
   await expect(page.locator('input[placeholder="Nom"]')).toBeVisible()
   await expect(page.locator('input[placeholder="Téléphone"]')).toBeVisible()
 })

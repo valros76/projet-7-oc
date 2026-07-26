@@ -64,6 +64,7 @@ const { user, login, register, logout } = useAuth()
 const isLoginMode = ref(true)
 const errorMessage = ref('')
 const successMessage = ref('')
+const router = useRouter()
 
 const form = ref({
   firstName: '',
@@ -84,6 +85,7 @@ const handleSubmit = async () => {
         password: form.value.password,
       })
       successMessage.value = 'Connexion réussie !'
+      await router.push('/leads/dashboard')
     } else {
       await register(form.value)
       successMessage.value = 'Compte créé avec succès !'

@@ -1,8 +1,15 @@
 import { userRepository } from '@server/repositories/userRepository'
 import { verifyRefreshToken, generateAccessToken } from '@server/utils/auth'
+import { parseCookies } from 'h3'
 
 export default defineEventHandler(async (event) => {
-  const refreshToken = getCookie(event, 'refresh_token')
+  // 1. Essayer de récupérer le cookie avec getCookie, sinon parser manuellement l'en-tête brut par sécurité
+  let refreshToken = getCookie(event, 'refresh_token')
+  
+  if (!refreshToken) {
+    const cookies = parseCookies(event)
+    refreshToken = cookies.refresh_token
+  }
 
   if (!refreshToken) {
     throw createError({
