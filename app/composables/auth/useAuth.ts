@@ -1,6 +1,15 @@
 export const useAuth = () => {
-  const user = useState('auth_user', () => null as { id: number; email: string; firstName: string; lastName: string; role: string } | null)
-  const accessToken = useState('auth_token', () => null as string | null)
+  // Utilisation de useCookie pour persister le token à travers les rechargements (F5) et le SSR
+  const accessToken = useCookie('auth_token', {
+    maxAge: 60 * 15, // Ajustez selon la durée de vie de votre access token (ex: 15 minutes)
+    sameSite: 'lax',
+  })
+
+  // Stockage de l'utilisateur dans un cookie ou un state persistant
+  const user = useCookie('auth_user', {
+    default: () => null as { id: number; email: string; firstName: string; lastName: string; role: string } | null,
+    sameSite: 'lax',
+  })
 
   const login = async (credentials: { email: string; password: string }) => {
     const res: any = await $fetch('/api/auth/login', {
@@ -19,10 +28,15 @@ export const useAuth = () => {
   }
 
   const logout = async () => {
-    await $fetch('/api/auth/logout', { method: 'POST' })
-    accessToken.value = null
-    user.value = null
-    navigateTo('/')
+    try {
+      await $fetch('/api/auth/logout', { method: 'POST' })
+    } catch {
+      // Ignore network errors on logout
+    } finally {
+      accessToken.value = null
+      user.value = null
+      navigateTo('/')
+    }
   }
 
   const refreshSession = async () => {

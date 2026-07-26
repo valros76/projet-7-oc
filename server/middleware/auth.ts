@@ -3,7 +3,7 @@ import { verifyAccessToken } from '@server/utils/auth'
 export default defineEventHandler((event) => {
   const url = getRequestURL(event)
 
-  const protectedRoutes = ['/api/protected', '/api/user/profile']
+  const protectedRoutes = ['/api/protected', '/api/user/profile', '/api/leads']
 
   const isProtected = protectedRoutes.some((route) => url.pathname.startsWith(route))
 

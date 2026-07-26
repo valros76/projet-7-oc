@@ -13,15 +13,17 @@ services:
       - mysql_data:/var/lib/mysql
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-prootpassword"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
+      interval: 3s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
 
   # Service de l'Application Nuxt 4
   app:
     build: .
     container_name: webdevoo_app
     restart: always
+    command: sh -c "node -e 'const net = require(\"net\"); const client = new net.Socket(); const tryConnect = () => client.connect(3306, \"db\", () => { client.end(); process.exit(0); }); client.on(\"error\", () => { setTimeout(tryConnect, 1000); }); tryConnect();' && bunx drizzle-kit push && bun run dev"
     ports:
       - "3000:3000"
     environment:
