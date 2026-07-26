@@ -1,6 +1,7 @@
 import { db } from '@server/utils/drizzle'
 import { leads } from '@server/database/schema'
 import { protectRoute } from '@server/utils/auth'
+import type { LeadStatus } from '@shared/types'
 
 export default defineEventHandler(async (event) => {
   const user = protectRoute(event)
@@ -16,7 +17,8 @@ export default defineEventHandler(async (event) => {
     missionStartDate, 
     durationDays, 
     isIndefiniteDuration, 
-    commissionRate 
+    commissionRate,
+    clientSiret
   } = body
 
   if (!companyName || !contactFirstName || !contactLastName || !clientEmail || !clientPhone || !missionTitle || !missionStartDate) {
@@ -36,10 +38,11 @@ export default defineEventHandler(async (event) => {
       clientPhone,
       missionTitle,
       missionStartDate,
-      durationDays: durationDays || null,
-      isIndefiniteDuration: isIndefiniteDuration ?? false,
-      commissionRate: commissionRate || '10.00',
-      status: 'pending',
+      clientSiret: clientSiret || null,
+      durationDays: durationDays ? Number(durationDays) : null,
+      isIndefiniteDuration: Boolean(isIndefiniteDuration),
+      commissionRate: commissionRate ? String(commissionRate) : '10.00',
+      status: 'pending' as LeadStatus,
     }).$returningId()
 
     return {
@@ -48,6 +51,7 @@ export default defineEventHandler(async (event) => {
       leadId: newLead,
     }
   } catch (error: any) {
+    console.error('Erreur technique (leads.post):', error)
     throw createError({
       statusCode: 500,
       message: "Erreur lors de la création du lead en base de données.",

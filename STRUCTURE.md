@@ -48,6 +48,7 @@ webdevoo-lead/
 │   ├── unit/
 │   │   └── auth.test.ts                  # Tests unitaires de la logique d'authentification (Vitest)
 │   └── e2e/
+│       ├── auth.spec.ts                  # Test End-to-End de l'auth
 │       └── lead-workflow.spec.ts         # Test End-to-End du parcours de création de lead (Playwright)
 ├── public/                               # Fichiers statiques publics (logos, favicons)
 ├── .env.example                          # Modèle des variables d'environnement requises (DB, Secrets JWT)
