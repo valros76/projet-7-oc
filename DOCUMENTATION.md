@@ -27,7 +27,8 @@ Le projet repose sur une architecture moderne basée sur les technologies suivan
 | Domaine | Technologie |
 |---------|-------------|
 | Framework Front-end / BFF | Nuxt 4 (Nitro) |
-| Langage | TypeScript |
+| Langage | TypeScript strict |
+| Typage partagé | Répertoire racine `shared/` (Front & Back) |
 | Styles | CSS3 natif |
 | Base de données | MySQL |
 | ORM | Drizzle ORM |
@@ -56,6 +57,12 @@ L'ensemble de l'interface est regroupé dans le répertoire `app/`, qui contient
 - `app/composables/` : les composables Vue ;
 - `app/middleware/` : les middlewares de routage, notamment `middleware/auth.ts` utilisé pour protéger les pages nécessitant une authentification ;
 - `app/plugins/` : les plugins Nuxt, dont `plugins/api.ts` chargé d'initialiser le client HTTP de l'application.
+
+De plus, le projet intègre un répertoire global **`shared/`** à la racine, dédié à la centralisation des typages et interfaces TypeScript.
+
+Le dossier `shared/types/` contient l'ensemble des modèles de données communs (utilisateurs, authentification, leads, etc.) utilisés aussi bien par l'application front-end que par le serveur Nitro.
+
+Cette architecture garantit un contrat de données unique entre les deux couches de l'application, limite les duplications de code et facilite la maintenance lors des évolutions du projet.
 
 Cette organisation permet de maintenir une architecture claire, modulaire et conforme aux bonnes pratiques de Nuxt 4 tout en facilitant la maintenance et les évolutions du projet.
 
@@ -359,6 +366,23 @@ Les informations sensibles sont isolées :
 - Secrets GitHub Actions pour les pipelines CI/CD.
 
 Aucun secret n'est présent dans le dépôt Git.
+
+## 7.5 Typage strict et cohérence des données
+
+Le projet centralise l'ensemble des interfaces et types TypeScript dans le répertoire racine **`shared/`**.
+
+Cette organisation permet aux routes API développées avec Nitro ainsi qu'à l'application Nuxt de partager les mêmes contrats de données sans duplication.
+
+Les principaux modèles (utilisateurs, authentification, rôles, leads, statuts, etc.) sont définis une seule fois puis réutilisés dans l'ensemble du projet.
+
+Cette approche présente plusieurs avantages :
+
+- suppression des divergences entre le front-end et le serveur ;
+- vérification des contrats de données dès la compilation TypeScript ;
+- réduction des erreurs liées aux échanges API ;
+- amélioration de la maintenabilité et de l'évolutivité de l'application.
+
+Grâce à cette centralisation, les structures de données restent cohérentes sur l'ensemble de l'architecture, ce qui renforce la robustesse et la fiabilité globale du projet.
 
 ---
 

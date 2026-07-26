@@ -33,20 +33,21 @@ Le projet met l'accent sur la **sécurité**, la **maintenabilité** et **l'auto
 
 # 🏗️ Stack technique
 
-| Domaine          | Technologie         |
-| ---------------- | ------------------- |
-| Framework        | Nuxt 4              |
-| Runtime          | Nitro               |
-| Langage          | TypeScript          |
-| Base de données  | MySQL               |
-| ORM              | Drizzle ORM         |
-| Client HTTP      | ofetch              |
+| Domaine | Technologie |
+|----------|-------------|
+| Framework | Nuxt 4 |
+| Runtime | Nitro |
+| Langage | TypeScript |
+| Base de données | MySQL |
+| ORM | Drizzle ORM |
+| Client HTTP | ofetch |
 | Authentification | JWT + Refresh Token |
-| Tests unitaires  | Vitest              |
-| Tests E2E        | Playwright          |
-| Linter           | ESLint              |
-| CI/CD            | GitHub Actions      |
-| Hébergement      | PlanetHoster        |
+| Typage partagé | `shared/` (types et interfaces communs Front/Back) |
+| Tests unitaires | Vitest |
+| Tests E2E | Playwright |
+| Linter | ESLint |
+| CI/CD | GitHub Actions |
+| Hébergement | PlanetHoster |
 
 ---
 
@@ -71,6 +72,13 @@ webdevoo-lead/
 │   ├── api/
 │   ├── database/
 │   └── utils/
+│
+├── shared/
+│   └── types/
+│       ├── index.ts
+│       ├── auth.ts
+│       ├── lead.ts
+│       └── user.ts
 │
 ├── tests/
 │   ├── unit/
@@ -124,6 +132,15 @@ Le serveur **Nitro** assure simultanément :
 * la logique métier ;
 * l'authentification ;
 * les accès à la base de données.
+
+Les types et interfaces TypeScript sont centralisés dans le dossier racine **`shared/`** afin d'être utilisés aussi bien par le front-end (`app/`) que par le serveur (`server/`).
+
+Cette mutualisation garantit :
+
+- un typage unique partagé entre le client et le serveur ;
+- l'absence de duplication des interfaces métier ;
+- une meilleure maintenabilité du code ;
+- une cohérence des modèles de données sur l'ensemble de l'application.
 
 ---
 
@@ -229,7 +246,9 @@ Le pipeline exécute :
 
 # 💻 Installation
 
-## Cloner le projet
+## Lancement avec Docker (Recommandé)
+
+### 1. Cloner le projet
 
 ```bash
 git clone https://github.com/<organisation>/webdevoo-lead.git
@@ -237,9 +256,31 @@ git clone https://github.com/<organisation>/webdevoo-lead.git
 cd webdevoo-lead
 ```
 
+### 2. Créer le fichier d'environnement
+
+```bash
+cp .env.example .env
+```
+
+Configurer ensuite les variables d'environnement dans le fichier `.env`.
+
+### 3. Lancer l'application
+
+```bash
+docker compose up --build
+```
+
+L'application sera alors disponible sur :
+
+```text
+http://localhost:3000
+```
+
 ---
 
-## Installer les dépendances
+## Installation manuelle
+
+### Installer les dépendances
 
 Avec Bun :
 
@@ -255,23 +296,7 @@ npm install
 
 ---
 
-## Configurer l'environnement
-
-Créer un fichier `.env` à partir du modèle fourni.
-
-```bash
-cp .env.example .env
-```
-
-Puis renseigner :
-
-* informations MySQL
-* secrets JWT
-* paramètres de l'application
-
----
-
-## Lancer le serveur de développement
+### Lancer le serveur de développement
 
 Avec Bun :
 
@@ -287,10 +312,9 @@ npm run dev
 
 L'application sera accessible sur :
 
-```
+```text
 http://localhost:3000
 ```
-
 ---
 
 # 🧪 Exécuter les tests

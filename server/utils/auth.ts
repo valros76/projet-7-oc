@@ -1,12 +1,7 @@
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
-
-// Définition de l'interface du payload stocké dans le JWT
-export interface TokenPayload {
-  userId: number
-  email?: string
-  role?: string
-}
+import type { H3Event } from 'h3'
+import type { TokenPayload } from '@shared/types'
 
 // Hacher un mot de passe
 export async function hashPassword(password: string): Promise<string> {
@@ -51,4 +46,37 @@ export function verifyRefreshToken(token: string): TokenPayload | null {
   } catch {
     return null
   }
+}
+
+// Protéger une route API (extrait et valide l'Access Token depuis les headers)
+export function protectRoute(event: H3Event): TokenPayload {
+  const authHeader = getHeader(event, 'authorization')
+
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    throw createError({
+      statusCode: 401,
+      statusMessage: 'Non autorisé : Token manquant ou invalide.',
+    })
+  }
+
+  const parts = authHeader.split(' ')
+  const token = parts[1]
+
+  if (!token) {
+    throw createError({
+      statusCode: 401,
+      statusMessage: 'Non autorisé : Format du token invalide.',
+    })
+  }
+
+  const payload = verifyAccessToken(token)
+
+  if (!payload) {
+    throw createError({
+      statusCode: 401,
+      statusMessage: 'Token expiré ou invalide.',
+    })
+  }
+
+  return payload
 }

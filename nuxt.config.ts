@@ -6,6 +6,7 @@ export default defineNuxtConfig({
   devtools: { enabled: true },
   alias: {
     '@server': resolve(__dirname, './server'),
+    '@shared': resolve(__dirname, './shared'),
   },
   runtimeConfig: {
     jwtAccessSecret: process.env.JWT_ACCESS_SECRET || 'fallback_webdevoo_acc_key@12',

@@ -1,5 +1,14 @@
-export default defineNuxtPlugin(() => {
+export default defineNuxtPlugin(async () => {
   const { accessToken, refreshSession, logout } = useAuth()
+
+  // On tente de récupérer un access token frais si la mémoire est vide
+  if (!accessToken.value) {
+    try {
+      await refreshSession()
+    } catch {
+      // Pas de session valide, l'utilisateur reste non authentifié
+    }
+  }
 
   const api = $fetch.create({
     onRequest({ options }) {
