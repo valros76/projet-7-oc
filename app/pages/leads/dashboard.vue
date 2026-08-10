@@ -1,42 +1,52 @@
 <script setup lang="ts">
+import Logout from '~/components/auth/Logout.vue'
+import DashboardFilters from '~/components/dashboard/DashboardFilters.vue'
+import DashboardTable from '~/components/dashboard/DashboardTable.vue'
+
 definePageMeta({
-  middleware: "auth"
-});
+  middleware: "auth",
+})
 
-const { $api } = useNuxtApp();
-const authStore = useAuth();
+const { $api } = useNuxtApp()
+const authStore = useAuth()
 
-const leadsList = ref<any[]>([]);
-const loading = ref(true);
-const errorMessage = ref("");
+const leadsList = ref<any[]>([])
+const loading = ref(true)
+const errorMessage = ref("")
+const successMessage = ref("")
 
-const totalLeads = computed(() => leadsList.value.length);
-const pendingLeads = computed(() => leadsList.value.filter(l => l.status === "pending").length);
-const acceptedLeads = computed(() => leadsList.value.filter(l => l.status === "accepted" || l.status === "paid").length);
+const searchQuery = ref("")
+const selectedStatus = ref("all")
 
-const formatDate = (dateStr: string) => {
-  if (!dateStr) return "-"
-  return new Date(dateStr).toLocaleDateString("fr-FR", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric"
+const isAdmin = computed(() => authStore.user.value?.role === "admin")
+
+// KPIs calculés sur toute la liste brute
+const totalLeads = computed(() => leadsList.value.length)
+const pendingLeads = computed(() => leadsList.value.filter((l) => l.status === "pending").length)
+const acceptedLeads = computed(() => leadsList.value.filter((l) => ["accepted", "paid", "finished"].includes(l.status)).length)
+
+// Leads filtrés selon la recherche et le statut sélectionné
+const filteredLeads = computed(() => {
+  return leadsList.value.filter((lead) => {
+    // Filtre par statut
+    if (selectedStatus.value === 'pending' && lead.status !== 'pending') return false
+    if (selectedStatus.value === 'accepted' && !['accepted', 'paid', 'finished'].includes(lead.status)) return false
+    if (selectedStatus.value === 'refused' && lead.status !== 'refused') return false
+
+    // Filtre par recherche textuelle
+    if (searchQuery.value.trim() !== "") {
+      const q = searchQuery.value.toLowerCase()
+      const matchCompany = lead.companyName?.toLowerCase().includes(q)
+      const matchMission = lead.missionTitle?.toLowerCase().includes(q)
+      const matchContact = `${lead.contactFirstName} ${lead.contactLastName}`.toLowerCase().includes(q)
+      const matchReferrer = `${lead.referrerFirstName} ${lead.referrerLastName}`.toLowerCase().includes(q)
+      
+      return matchCompany || matchMission || matchContact || matchReferrer
+    }
+
+    return true
   })
-};
-
-const getStatusBadge = (status: string) => {
-  switch (status) {
-    case "pending":
-      return { label: "En attente", class: "badge-pending" }
-    case "accepted":
-      return { label: "Validé", class: "badge-accepted" }
-    case "rejected":
-      return { label: "Refusé", class: "badge-rejected" }
-    case "paid":
-      return { label: "Payé", class: "badge-paid" }
-    default:
-      return { label: status, class: "badge-default" }
-  }
-};
+})
 
 const fetchLeads = async () => {
   loading.value = true
@@ -49,11 +59,33 @@ const fetchLeads = async () => {
   } finally {
     loading.value = false
   }
-};
+}
+
+// Action rapide admin pour modifier le statut à la volée
+const updateLeadStatus = async (leadId: number, newStatus: string) => {
+  errorMessage.value = ""
+  successMessage.value = ""
+  try {
+    await $api(`/api/leads/${leadId}`, {
+      method: "PUT",
+      body: { status: newStatus }
+    })
+    successMessage.value = "Statut mis à jour avec succès."
+    await fetchLeads()
+  } catch (err: any) {
+    errorMessage.value = err?.data?.message || "Erreur lors de la modification du statut."
+  }
+}
+
+const viewLead = (lead: any) => {
+  if (lead.id) {
+    navigateTo(`/leads/${lead.id}`)
+  }
+}
 
 onMounted(() => {
   fetchLeads()
-});
+})
 </script>
 
 <template>
@@ -61,10 +93,17 @@ onMounted(() => {
     <div class="dashboard-wrapper">
       <header class="dashboard-header">
         <div>
-          <h1>Tableau de bord - Apporteur</h1>
-          <p class="subtitle">Suivez l'état de vos opportunités d'affaires</p>
+          <h1>Tableau de bord - {{ isAdmin ? "Administrateur" : "Apporteur" }}</h1>
+          <p class="subtitle">
+            {{ isAdmin ? "Vue globale de tous les leads de la plateforme" : "Suivez l'état de vos opportunités d'affaires" }}
+          </p>
         </div>
-        <NuxtLink to="/leads/new" class="btn-primary">+ Nouveau Lead</NuxtLink>
+        <div class="header-actions">
+          <NuxtLink v-if="isAdmin" to="/admin/users" class="btn-secondary">Gérer les utilisateurs</NuxtLink>
+          <NuxtLink v-if="!isAdmin" to="/leads/earnings" class="btn-earnings">💹 Mes stats</NuxtLink>
+          <NuxtLink to="/leads/new" class="btn-primary">+ Nouveau Lead</NuxtLink>
+          <Logout />
+        </div>
       </header>
 
       <div class="kpi-grid">
@@ -82,59 +121,27 @@ onMounted(() => {
         </div>
       </div>
 
-      <div v-if="errorMessage" class="error-message">
-        {{ errorMessage }}
+      <div v-if="errorMessage" class="error-message">{{ errorMessage }}</div>
+      <div v-if="successMessage" class="success-message">{{ successMessage }}</div>
+
+      <DashboardFilters 
+        v-model:searchQuery="searchQuery" 
+        v-model:selectedStatus="selectedStatus" 
+      />
+
+      <div v-if="loading" class="loading-state">Chargement de vos leads...</div>
+
+      <div v-else-if="filteredLeads.length === 0" class="empty-state">
+        <p>Aucun lead ne correspond à votre recherche.</p>
       </div>
 
-      <div v-if="loading" class="loading-state">
-        Chargement de vos leads...
-      </div>
-
-      <div v-else-if="leadsList.length === 0" class="empty-state">
-        <p>Aucun lead n'a été créé pour le moment.</p>
-        <NuxtLink to="/leads/new" class="btn-secondary">Créer votre premier lead</NuxtLink>
-      </div>
-
-      <div v-else class="table-container">
-        <table class="leads-table">
-          <thead>
-            <tr>
-              <th>Statut</th>
-              <th>Début estimé</th>
-              <th>Société</th>
-              <th>Mission</th>
-              <th>Contact & Coordonnées</th>
-              <th>Commission</th>
-              <th>Créé le</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="lead in leadsList" :key="lead.id">
-              <td data-label="Statut">
-                <span class="badge" :class="getStatusBadge(lead.status).class">
-                  {{ getStatusBadge(lead.status).label }}
-                </span>
-              </td>
-              <td data-label="Début estimé">{{ formatDate(lead.missionStartDate) }}</td>
-              <td data-label="Société" class="font-bold">{{ lead.companyName }}</td>
-              <td data-label="Mission">{{ lead.missionTitle }}</td>
-              <td data-label="Contact & Coordonnées">
-                <div class="contact-info-wrapper">
-                  <div class="contact-name">{{ lead.contactFirstName }} {{ lead.contactLastName }}</div>
-                  <div class="text-muted" v-if="lead.clientEmail">
-                    ✉️ <a :href="`mailto:${encodeURIComponent(lead.clientEmail)}`">{{ lead.clientEmail }}</a>
-                  </div>
-                  <div class="text-muted" v-if="lead.clientPhone">
-                    📞 <a :href="`tel:${lead.clientPhone}`">{{ lead.clientPhone }}</a>
-                  </div>
-                </div>
-              </td>
-              <td data-label="Commission">{{ lead.commissionRate }}%</td>
-              <td data-label="Créé le">{{ formatDate(lead.createdAt) }}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+      <DashboardTable 
+        v-else 
+        :leads="filteredLeads" 
+        :isAdmin="isAdmin" 
+        @view="viewLead" 
+        @updateStatus="updateLeadStatus" 
+      />
     </div>
   </div>
 </template>
@@ -146,7 +153,7 @@ onMounted(() => {
   padding: 2rem 1rem;
 }
 .dashboard-wrapper {
-  max-width: 1100px;
+  max-width: 1200px;
   margin: 0 auto;
   display: flex;
   flex-direction: column;
@@ -157,6 +164,7 @@ onMounted(() => {
   justify-content: space-between;
   align-items: center;
   gap: 1rem;
+  flex-wrap: wrap;
 }
 .dashboard-header h1 {
   font-size: 1.75rem;
@@ -167,6 +175,11 @@ onMounted(() => {
   color: #6b7280;
   font-size: 0.9rem;
   margin-top: 0.25rem;
+}
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
 }
 .kpi-grid {
   display: grid;
@@ -192,49 +205,6 @@ onMounted(() => {
   font-weight: 700;
   color: #111827;
 }
-.table-container {
-  background: white;
-  border-radius: 8px;
-  border: 1px solid #e5e7eb;
-  overflow: hidden;
-}
-.leads-table {
-  width: 100%;
-  border-collapse: collapse;
-  text-align: left;
-  font-size: 0.9rem;
-}
-.leads-table th {
-  background-color: #f9fafb;
-  padding: 0.75rem 1rem;
-  color: #374151;
-  border-bottom: 1px solid #e5e7eb;
-  font-weight: 600;
-}
-.leads-table td {
-  padding: 1rem;
-  border-bottom: 1px solid #f3f4f6;
-  color: #4b5563;
-  vertical-align: top;
-}
-.font-bold { font-weight: 600; color: #111827; }
-.contact-name { font-weight: 500; color: #111827; margin-bottom: 0.15rem; }
-.text-muted { color: #6b7280; font-size: 0.8rem; line-height: 1.2; word-break: break-all; }
-
-/* Badges */
-.badge {
-  width:max-content;
-  padding: 0.25rem 0.6rem;
-  border-radius: 9999px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  display: inline-block;
-}
-.badge-pending { background-color: #fef3c7; color: #92400e; }
-.badge-accepted { background-color: #d1fae5; color: #065f46; }
-.badge-rejected { background-color: #fee2e2; color: #991b1b; }
-.badge-paid { background-color: #dbeafe; color: #1e40af; }
-
 .btn-primary {
   background-color: #2563eb;
   color: white;
@@ -247,6 +217,7 @@ onMounted(() => {
 .btn-secondary {
   color: #2563eb;
   text-decoration: underline;
+  font-size: 0.9rem;
 }
 .empty-state, .loading-state {
   background: white;
@@ -261,60 +232,23 @@ onMounted(() => {
   color: #991b1b;
   border-radius: 6px;
 }
+.success-message {
+  padding: 0.75rem;
+  background-color: #d1fae5;
+  color: #065f46;
+  border-radius: 6px;
+}
 
-/* --- RESPONSIVE MOBILE CSS (< 768px) --- */
-@media (max-width: 768px) {
-  .dashboard-header {
-    flex-direction: column;
-    align-items: stretch;
-  }
-  .dashboard-header .btn-primary {
-    text-align: center;
-  }
-  .table-container {
-    background: transparent;
-    border: none;
-  }
-  .leads-table, 
-  .leads-table thead, 
-  .leads-table tbody, 
-  .leads-table th, 
-  .leads-table td, 
-  .leads-table tr {
-    display: block;
-  }
-  .leads-table thead {
-    display: none;
-  }
-  .leads-table tr {
-    background: white;
-    margin-bottom: 1rem;
-    border: 1px solid #e5e7eb;
-    border-radius: 8px;
-    padding: 1rem;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-  }
-  .leads-table td {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    padding: 0.6rem 0;
-    border-bottom: 1px solid #f3f4f6;
-    text-align: right;
-  }
-  .leads-table td:last-child {
-    border-bottom: none;
-  }
-  .leads-table td::before {
-    content: attr(data-label);
-    font-weight: 600;
-    color: #374151;
-    text-align: left;
-    margin-right: 1rem;
-    flex-shrink: 0;
-  }
-  .contact-info-wrapper {
-    text-align: right;
+.btn-earnings {
+  background-color: #dbeafe;
+  color: #1e40af;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  text-decoration: none;
+  &:hover {
+    background-color: #bfdbfe;
   }
 }
 </style>

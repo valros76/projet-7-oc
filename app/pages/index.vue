@@ -9,7 +9,7 @@
       <NuxtLink to="/leads/dashboard" class="btn-valid">
         Accéder au dashboard
       </NuxtLink>
-      <button @click="handleLogout" class="btn-danger">Se déconnecter</button>
+      <Logout/>
     </div>
 
     <div v-else class="card">
@@ -61,8 +61,9 @@
 
 <script setup>
 import { ref } from 'vue'
+import Logout from '~/components/auth/Logout.vue'
 
-const { user, login, register, logout } = useAuth()
+const { user, login, register } = useAuth()
 
 const isLoginMode = ref(true)
 const errorMessage = ref('')
@@ -96,15 +97,6 @@ const handleSubmit = async () => {
     }
   } catch (err) {
     errorMessage.value = err?.data?.statusMessage || 'Une erreur est survenue.'
-  }
-}
-
-const handleLogout = async () => {
-  try {
-    await logout()
-    successMessage.value = 'Déconnecté avec succès.'
-  } catch (err) {
-    errorMessage.value = 'Erreur lors de la déconnexion.'
   }
 }
 </script>

@@ -16,7 +16,7 @@ interface RefreshResponse {
 }
 
 export const useAuth = () => {
-  const accessToken = useCookie<string | null>('auth_token', {
+  const accessToken = useCookie<string | null>('wdv_leads_access_token', {
     maxAge: 60 * 15,
     sameSite: 'lax',
     default: () => null,
