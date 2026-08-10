@@ -1,76 +1,133 @@
 <script setup lang="ts">
-import type { LeadsApiResponse } from '@shared/types'
-
 definePageMeta({
-  middleware: 'auth'
-})
+  middleware: "auth"
+});
 
-const { $api } = useNuxtApp()
-const { user, logout } = useAuth()
+const { $api } = useNuxtApp();
+const authStore = useAuth();
 
-const { data: response, refresh, error } = await useAsyncData<LeadsApiResponse>('leads-list', () => 
-  $api('/api/leads')
-)
+const leadsList = ref<any[]>([]);
+const loading = ref(true);
+const errorMessage = ref("");
 
-const leads = computed(() => response.value?.leads || [])
+const totalLeads = computed(() => leadsList.value.length);
+const pendingLeads = computed(() => leadsList.value.filter(l => l.status === "pending").length);
+const acceptedLeads = computed(() => leadsList.value.filter(l => l.status === "accepted" || l.status === "paid").length);
+
+const formatDate = (dateStr: string) => {
+  if (!dateStr) return "-"
+  return new Date(dateStr).toLocaleDateString("fr-FR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric"
+  })
+};
+
+const getStatusBadge = (status: string) => {
+  switch (status) {
+    case "pending":
+      return { label: "En attente", class: "badge-pending" }
+    case "accepted":
+      return { label: "Validé", class: "badge-accepted" }
+    case "rejected":
+      return { label: "Refusé", class: "badge-rejected" }
+    case "paid":
+      return { label: "Payé", class: "badge-paid" }
+    default:
+      return { label: status, class: "badge-default" }
+  }
+};
+
+const fetchLeads = async () => {
+  loading.value = true
+  errorMessage.value = ""
+  try {
+    const res: any = await $api("/api/leads")
+    leadsList.value = res.leads || []
+  } catch (err: any) {
+    errorMessage.value = err?.data?.message || "Erreur lors du chargement des leads."
+  } finally {
+    loading.value = false
+  }
+};
+
+onMounted(() => {
+  fetchLeads()
+});
 </script>
 
 <template>
   <div class="dashboard-container">
     <div class="dashboard-wrapper">
-      
       <header class="dashboard-header">
-        <div class="header-info">
+        <div>
           <h1>Tableau de bord - Apporteur</h1>
-          <p v-if="user" class="subtitle">Connecté en tant que : <strong>{{ user.firstName }} {{ user.lastName }}</strong></p>
+          <p class="subtitle">Suivez l'état de vos opportunités d'affaires</p>
         </div>
-        <div class="header-actions">
-          <NuxtLink to="/leads/new" class="btn-primary">
-            + Nouveau Lead
-          </NuxtLink>
-          <button @click="logout" class="btn-danger">
-            Se déconnecter
-          </button>
-        </div>
+        <NuxtLink to="/leads/new" class="btn-primary">+ Nouveau Lead</NuxtLink>
       </header>
 
-      <section class="dashboard-card">
-        <h2>Mes Leads enregistrés</h2>
-
-        <div v-if="error" class="error-message">
-          Erreur lors du chargement des leads.
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <span class="kpi-title">Total Leads</span>
+          <span class="kpi-value">{{ totalLeads }}</span>
         </div>
-
-        <div v-else-if="leads.length === 0" class="empty-state">
-          Aucun lead pour le moment. Créez votre première opportunité !
+        <div class="kpi-card warning">
+          <span class="kpi-title">En attente</span>
+          <span class="kpi-value">{{ pendingLeads }}</span>
         </div>
-
-        <div v-else class="table-responsive">
-          <table class="leads-table">
-            <thead>
-              <tr>
-                <th>Société</th>
-                <th>Contact</th>
-                <th>Mission</th>
-                <th>Statut</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="lead in leads" :key="lead.id">
-                <td class="font-weight-bold">{{ lead.companyName }}</td>
-                <td>{{ lead.contactFirstName }} {{ lead.contactLastName }}</td>
-                <td>{{ lead.missionTitle }}</td>
-                <td>
-                  <span class="badge" :class="`badge-${lead.status}`">
-                    {{ lead.status }}
-                  </span>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+        <div class="kpi-card success">
+          <span class="kpi-title">Validés / Payés</span>
+          <span class="kpi-value">{{ acceptedLeads }}</span>
         </div>
-      </section>
+      </div>
 
+      <div v-if="errorMessage" class="error-message">
+        {{ errorMessage }}
+      </div>
+
+      <div v-if="loading" class="loading-state">
+        Chargement de vos leads...
+      </div>
+
+      <div v-else-if="leadsList.length === 0" class="empty-state">
+        <p>Aucun lead n'a été créé pour le moment.</p>
+        <NuxtLink to="/leads/new" class="btn-secondary">Créer votre premier lead</NuxtLink>
+      </div>
+
+      <div v-else class="table-container">
+        <table class="leads-table">
+          <thead>
+            <tr>
+              <th>Société</th>
+              <th>Mission</th>
+              <th>Contact</th>
+              <th>Début estimé</th>
+              <th>Commission</th>
+              <th>Statut</th>
+              <th>Créé le</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="lead in leadsList" :key="lead.id">
+              <td class="font-bold">{{ lead.companyName }}</td>
+              <td>{{ lead.missionTitle }}</td>
+              <td>
+                <div>{{ lead.contactFirstName }} {{ lead.contactLastName }}</div>
+                <small class="text-muted">{{ lead.clientEmail }}</small>
+              </td>
+              <td>{{ formatDate(lead.missionStartDate) }}</td>
+              <td>{{ lead.commissionRate }}%</td>
+              <td>
+                <span class="badge" :class="getStatusBadge(lead.status).class">
+                  {{ getStatusBadge(lead.status).label }}
+                </span>
+              </td>
+              <td>{{ formatDate(lead.createdAt) }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
 </template>
@@ -81,7 +138,6 @@ const leads = computed(() => response.value?.leads || [])
   background-color: #f4f6f9;
   padding: 2rem 1rem;
 }
-
 .dashboard-wrapper {
   max-width: 1100px;
   margin: 0 auto;
@@ -89,118 +145,107 @@ const leads = computed(() => response.value?.leads || [])
   flex-direction: column;
   gap: 1.5rem;
 }
-
 .dashboard-header {
-  background: #ffffff;
-  padding: 1.5rem;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  flex-wrap: wrap;
+}
+.dashboard-header h1 {
+  font-size: 1.75rem;
+  color: #1f2937;
+  margin: 0;
+}
+.subtitle {
+  color: #6b7280;
+  font-size: 0.9rem;
+  margin-top: 0.25rem;
+}
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 1rem;
 }
-
-.dashboard-header h1 {
-  font-size: 1.5rem;
-  color: #333333;
-  margin-bottom: 0.25rem;
-}
-
-.subtitle {
-  color: #666666;
-  font-size: 0.9rem;
-}
-
-.header-actions {
-  display: flex;
-  gap: 0.75rem;
-}
-
-.dashboard-card {
-  background: #ffffff;
-  padding: 1.5rem;
+.kpi-card {
+  background: white;
+  padding: 1.25rem;
   border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  border: 1px solid #e5e7eb;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
 }
-
-.dashboard-card h2 {
-  font-size: 1.2rem;
-  color: #333333;
-  margin-bottom: 1rem;
+.kpi-title {
+  font-size: 0.85rem;
+  color: #6b7280;
+  font-weight: 500;
 }
-
-.table-responsive {
+.kpi-value {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #111827;
+}
+.table-container {
+  background: white;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
   overflow-x: auto;
 }
-
 .leads-table {
   width: 100%;
   border-collapse: collapse;
   text-align: left;
-}
-
-.leads-table th,
-.leads-table td {
-  padding: 0.75rem 1rem;
-  border-bottom: 1px solid #e5e7eb;
   font-size: 0.9rem;
-  color: #4b5563;
 }
-
 .leads-table th {
   background-color: #f9fafb;
-  font-weight: 600;
+  padding: 0.75rem 1rem;
   color: #374151;
-}
-
-.font-weight-bold {
+  border-bottom: 1px solid #e5e7eb;
   font-weight: 600;
-  color: #111827;
 }
+.leads-table td {
+  padding: 1rem;
+  border-bottom: 1px solid #f3f4f6;
+  color: #4b5563;
+}
+.font-bold { font-weight: 600; color: #111827; }
+.text-muted { color: #9ca3af; font-size: 0.8rem; }
 
+/* Badges */
 .badge {
-  display: inline-block;
-  padding: 0.25rem 0.75rem;
+  padding: 0.25rem 0.6rem;
   border-radius: 9999px;
   font-size: 0.75rem;
   font-weight: 600;
-  text-transform: uppercase;
 }
+.badge-pending { background-color: #fef3c7; color: #92400e; }
+.badge-accepted { background-color: #d1fae5; color: #065f46; }
+.badge-rejected { background-color: #fee2e2; color: #991b1b; }
+.badge-paid { background-color: #dbeafe; color: #1e40af; }
 
-.badge-pending {
-  background-color: #fef3c7;
-  color: #92400e;
+.btn-primary {
+  background-color: #2563eb;
+  color: white;
+  padding: 0.65rem 1.25rem;
+  border-radius: 6px;
+  text-decoration: none;
+  font-weight: 600;
 }
-
-.badge-accepted {
-  background-color: #d1fae5;
-  color: #065f46;
+.btn-secondary {
+  color: #2563eb;
+  text-decoration: underline;
 }
-
-.badge-refused {
-  background-color: #fee2e2;
-  color: #991b1b;
+.empty-state, .loading-state {
+  background: white;
+  padding: 3rem;
+  text-align: center;
+  border-radius: 8px;
+  color: #6b7280;
 }
-
-.badge-finished {
-  background-color: #dbeafe;
-  color: #1e40af;
-}
-
 .error-message {
-  padding: 1rem;
+  padding: 0.75rem;
   background-color: #fee2e2;
   color: #991b1b;
   border-radius: 6px;
-  font-size: 0.9rem;
-}
-
-.empty-state {
-  text-align: center;
-  padding: 3rem 0;
-  color: #6b7280;
-  font-size: 0.95rem;
 }
 </style>

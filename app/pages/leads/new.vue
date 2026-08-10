@@ -11,7 +11,7 @@ const form = reactive({
   contactFirstName: '',
   contactLastName: '',
   clientSiret: '',
-  contactEmail: '',
+  clientEmail: '',
   clientPhone: '',
   missionTitle: '',
   missionStartDate: '',
@@ -28,9 +28,18 @@ const handleSubmit = async () => {
   errorMessage.value = ''
 
   try {
+
+    const payload = {
+      ...form,
+      clientSiret: form.clientSiret ? form.clientSiret.replace(/\D/g, '') : null,
+      clientPhone: form.clientPhone
+        ? form.clientPhone.replace(/^(?:\+33|0033)/, '0').replace(/\D/g, '')
+        : ''
+    }
+
     await $api('/api/leads', {
       method: 'POST',
-      body: form
+      body: payload
     })
 
     // Redirection vers le dashboard après succès
@@ -82,8 +91,8 @@ const handleSubmit = async () => {
           </div>
           <div class="form-row">
             <div class="form-group">
-              <label for="contactEmail">Email *</label>
-              <input id="contactEmail" v-model="form.contactEmail" type="email" required placeholder="jean.dupont@client.com" />
+              <label for="clientEmail">Email *</label>
+              <input id="clientEmail" v-model="form.clientEmail" type="email" required placeholder="jean.dupont@client.com" />
             </div>
             <div class="form-group">
               <label for="clientPhone">Téléphone</label>
@@ -180,7 +189,7 @@ legend {
 .form-group {
   display: flex;
   flex-direction: column;
-  gap: 0.35srem;
+  gap: 0.35rem;
 }
 .form-group label {
   font-size: 0.85rem;
