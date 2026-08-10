@@ -4,7 +4,7 @@ import { useAuth } from '#imports'
 export default defineNuxtRouteMiddleware((to, from) => {
   const accessToken = useCookie('wdv_leads_access_token')
 
-  if (!accessToken.value) {
-    return navigateTo('/', { replace: true })
+  if (!accessToken.value && to.path !== '/') {
+    return navigateTo('/')
   }
 })

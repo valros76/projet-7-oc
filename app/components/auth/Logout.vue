@@ -1,38 +1,42 @@
-<script lang="ts" setup>
-import { ref } from "vue";
-const { logout } = useAuth();
-const errorMessage = ref("");
-const successMessage = ref("");
-const handleLogout = async () => {
-  try {
-    await logout();
-    successMessage.value = "Déconnecté avec succès.";
-  } catch (err) {
-    errorMessage.value = "Erreur lors de la déconnexion.";
-  }
-};
+<script setup lang="ts">
+const handleLogout = () => {
+  navigateTo('/')
+}
 </script>
 
 <template>
-  <button
+  <button 
+    type="button" 
+    class="btn-logout" 
     @click="handleLogout"
-    class="btn-danger"
+    aria-label="Se déconnecter de l'application"
   >
-    Se déconnecter
-
-    <span
-      v-if="errorMessage"
-      class="error"
-    >
-      {{ errorMessage }}
-    </span>
-    <span
-      v-if="successMessage"
-      class="success"
-    >
-      {{ successMessage }}
-    </span>
+    Déconnexion
   </button>
 </template>
 
-<style scoped></style>
+<style scoped>
+.btn-logout {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.95rem;
+  color: #dc2626;
+  font-weight: 500;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  text-align: left;
+  transition: background-color 0.2s, color 0.2s;
+
+  &:hover {
+    background-color: #fee2e2;
+    color: #991b1b;
+  }
+
+  &:focus-visible {
+    outline: 2px solid #dc2626;
+    outline-offset: 2px;
+  }
+}
+</style>

@@ -15,6 +15,7 @@
     <div v-else class="card">
       <div class="tabs">
         <button 
+          type="button"
           @click="isLoginMode = true" 
           :class="{ active: isLoginMode }"
           class="tab-btn"
@@ -22,6 +23,7 @@
           Connexion
         </button>
         <button 
+          type="button"
           @click="isLoginMode = false" 
           :class="{ active: !isLoginMode }"
           class="tab-btn"
@@ -102,13 +104,69 @@ const handleSubmit = async () => {
 </script>
 
 <style scoped>
-.btn-valid{
-  width:max-content;
-  display:block;
-  padding:.25rem .5rem;
-  background-color:forestgreen;
-  color:white;
-  border-radius:.4rem;
-  margin:.5rem;
+.tabs {
+  display: flex;
+  background-color: #f1f5f9;
+  padding: 4px;
+  border-radius: var(--border-radius-base, 8px);
+  margin-bottom: 1.5rem;
+  gap: 4px;
+}
+
+.tab-btn {
+  flex: 1;
+  padding: 10px;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--color-gray-text, #64748b);
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    color: var(--color-dark, #1e293b);
+  }
+
+  &.active {
+    background: var(--color-white, #ffffff);
+    color: var(--color-primary, #2563eb);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-primary, #2563eb);
+    outline-offset: 2px;
+  }
+}
+
+.btn-valid {
+  width: max-content;
+  display: block;
+  padding: .5rem 1rem;
+  background-color: var(--color-success, #16a34a);
+  color: white;
+  border-radius: .4rem;
+  margin: .75rem 0;
+  text-decoration: none;
+  font-weight: 500;
+  transition: opacity 0.2s;
+
+  &:hover {
+    opacity: 0.9;
+  }
+}
+
+@media (max-width: 480px) {
+  .auth-container {
+    margin: 20px 1rem;
+    padding: 16px;
+  }
+
+  .row {
+    flex-direction: column;
+    gap: 1rem;
+  }
 }
 </style>

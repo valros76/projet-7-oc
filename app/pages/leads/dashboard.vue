@@ -1,254 +1,157 @@
 <script setup lang="ts">
-import Logout from '~/components/auth/Logout.vue'
-import DashboardFilters from '~/components/dashboard/DashboardFilters.vue'
-import DashboardTable from '~/components/dashboard/DashboardTable.vue'
+import { ref, computed } from 'vue'
+import LeadKpiGrid from '~/components/leads/LeadKpiGrid.vue'
+import LeadFilters from '~/components/leads/LeadFilters.vue'
+import LeadTable from '~/components/leads/LeadTable.vue'
+import LeadModal from '~/components/leads/LeadModal.vue'
+import Pagination from '~/components/common/Pagination.vue'
+import ToastNotification from '~/components/common/ToastNotification.vue'
 
 definePageMeta({
-  middleware: "auth",
+  middleware: 'auth'
 })
 
-const { $api } = useNuxtApp()
-const authStore = useAuth()
+// États de l'application
+const loading = ref(false)
+const searchQuery = ref('')
+const selectedStatus = ref('all')
+const currentPage = ref(1)
+const itemsPerPage = ref(5)
 
-const leadsList = ref<any[]>([])
-const loading = ref(true)
-const errorMessage = ref("")
-const successMessage = ref("")
+// État de la modale
+const isModalOpen = ref(false)
+const selectedLead = ref<any | null>(null)
 
-const searchQuery = ref("")
-const selectedStatus = ref("all")
+// État du Toast
+const toast = ref({
+  show: false,
+  message: '',
+  type: 'success' as 'success' | 'error' | 'info'
+})
 
-const isAdmin = computed(() => authStore.user.value?.role === "admin")
+const showToast = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
+  toast.value = { show: true, message, type }
+  setTimeout(() => {
+    toast.value.show = false
+  }, 4000)
+}
 
-// KPIs calculés sur toute la liste brute
-const totalLeads = computed(() => leadsList.value.length)
-const pendingLeads = computed(() => leadsList.value.filter((l) => l.status === "pending").length)
-const acceptedLeads = computed(() => leadsList.value.filter((l) => ["accepted", "paid", "finished"].includes(l.status)).length)
+// Données de test (à remplacer par ton appel API / Store Pinia)
+const leadsList = ref([
+  { id: 1, companyName: 'Tech Corp', missionTitle: 'Refonte UI/UX', createdAt: '2026-06-10', status: 'pending' },
+  { id: 2, companyName: 'Innovate SA', missionTitle: 'Migration Cloud', createdAt: '2026-06-08', status: 'accepted' },
+  { id: 3, companyName: 'Digital Flow', missionTitle: 'Audit Sécurité', createdAt: '2026-06-01', status: 'finished' },
+  { id: 4, companyName: 'Web Agency', missionTitle: 'Création site e-commerce', createdAt: '2026-05-28', status: 'refused' },
+])
 
-// Leads filtrés selon la recherche et le statut sélectionné
+// Calcul des KPI
+const kpis = computed(() => {
+  const total = leadsList.value.length
+  const pending = leadsList.value.filter(l => l.status === 'pending').length
+  const accepted = leadsList.value.filter(l => l.status === 'accepted').length
+  const finished = leadsList.value.filter(l => l.status === 'finished').length
+  return { total, pending, accepted, finished }
+})
+
+// Filtrage intelligent
 const filteredLeads = computed(() => {
-  return leadsList.value.filter((lead) => {
-    // Filtre par statut
-    if (selectedStatus.value === 'pending' && lead.status !== 'pending') return false
-    if (selectedStatus.value === 'accepted' && !['accepted', 'paid', 'finished'].includes(lead.status)) return false
-    if (selectedStatus.value === 'refused' && lead.status !== 'refused') return false
-
-    // Filtre par recherche textuelle
-    if (searchQuery.value.trim() !== "") {
-      const q = searchQuery.value.toLowerCase()
-      const matchCompany = lead.companyName?.toLowerCase().includes(q)
-      const matchMission = lead.missionTitle?.toLowerCase().includes(q)
-      const matchContact = `${lead.contactFirstName} ${lead.contactLastName}`.toLowerCase().includes(q)
-      const matchReferrer = `${lead.referrerFirstName} ${lead.referrerLastName}`.toLowerCase().includes(q)
-      
-      return matchCompany || matchMission || matchContact || matchReferrer
-    }
-
-    return true
+  return leadsList.value.filter(lead => {
+    const matchesSearch = lead.companyName.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
+                          lead.missionTitle.toLowerCase().includes(searchQuery.value.toLowerCase())
+    const matchesStatus = selectedStatus.value === 'all' || lead.status === selectedStatus.value
+    return matchesSearch && matchesStatus
   })
 })
 
-const fetchLeads = async () => {
-  loading.value = true
-  errorMessage.value = ""
-  try {
-    const res: any = await $api("/api/leads")
-    leadsList.value = res.leads || []
-  } catch (err: any) {
-    errorMessage.value = err?.data?.message || "Erreur lors du chargement des leads."
-  } finally {
-    loading.value = false
-  }
-}
+// Pagination des résultats filtrés
+const totalPages = computed(() => Math.ceil(filteredLeads.value.length / itemsPerPage.value) || 1)
 
-// Action rapide admin pour modifier le statut à la volée
-const updateLeadStatus = async (leadId: number, newStatus: string) => {
-  errorMessage.value = ""
-  successMessage.value = ""
-  try {
-    await $api(`/api/leads/${leadId}`, {
-      method: "PUT",
-      body: { status: newStatus }
-    })
-    successMessage.value = "Statut mis à jour avec succès."
-    await fetchLeads()
-  } catch (err: any) {
-    errorMessage.value = err?.data?.message || "Erreur lors de la modification du statut."
-  }
-}
-
-const viewLead = (lead: any) => {
-  if (lead.id) {
-    navigateTo(`/leads/${lead.id}`)
-  }
-}
-
-onMounted(() => {
-  fetchLeads()
+const paginatedLeads = computed(() => {
+  const start = (currentPage.value - 1) * itemsPerPage.value
+  const end = start + itemsPerPage.value
+  return filteredLeads.value.slice(start, end)
 })
+
+// Actions UI
+const openLeadDetails = (lead: any) => {
+  selectedLead.value = lead
+  isModalOpen.value = true
+}
+
+const closeModal = () => {
+  isModalOpen.value = false
+  selectedLead.value = null
+}
 </script>
 
 <template>
-  <div class="dashboard-container">
-    <div class="dashboard-wrapper">
-      <header class="dashboard-header">
-        <div>
-          <h1>Tableau de bord - {{ isAdmin ? "Administrateur" : "Apporteur" }}</h1>
-          <p class="subtitle">
-            {{ isAdmin ? "Vue globale de tous les leads de la plateforme" : "Suivez l'état de vos opportunités d'affaires" }}
-          </p>
-        </div>
-        <div class="header-actions">
-          <NuxtLink v-if="isAdmin" to="/admin/users" class="btn-secondary">Gérer les utilisateurs</NuxtLink>
-          <NuxtLink v-if="!isAdmin" to="/leads/earnings" class="btn-earnings">💹 Mes stats</NuxtLink>
-          <NuxtLink to="/leads/new" class="btn-primary">+ Nouveau Lead</NuxtLink>
-          <Logout />
-        </div>
-      </header>
+  <NuxtLayout>
+    <div class="dashboard-container">
+      <LeadKpiGrid v-bind="kpis" />
 
-      <div class="kpi-grid">
-        <div class="kpi-card">
-          <span class="kpi-title">Total Leads</span>
-          <span class="kpi-value">{{ totalLeads }}</span>
-        </div>
-        <div class="kpi-card warning">
-          <span class="kpi-title">En attente</span>
-          <span class="kpi-value">{{ pendingLeads }}</span>
-        </div>
-        <div class="kpi-card success">
-          <span class="kpi-title">Validés / Payés</span>
-          <span class="kpi-value">{{ acceptedLeads }}</span>
-        </div>
-      </div>
-
-      <div v-if="errorMessage" class="error-message">{{ errorMessage }}</div>
-      <div v-if="successMessage" class="success-message">{{ successMessage }}</div>
-
-      <DashboardFilters 
-        v-model:searchQuery="searchQuery" 
-        v-model:selectedStatus="selectedStatus" 
+      <LeadFilters 
+        v-model:searchQuery="searchQuery"
+        v-model:selectedStatus="selectedStatus"
       />
 
-      <div v-if="loading" class="loading-state">Chargement de vos leads...</div>
+      <LeadTable 
+        :leadsList="paginatedLeads" 
+        :loading="loading"
+        @row-click="openLeadDetails"
+      />
 
-      <div v-else-if="filteredLeads.length === 0" class="empty-state">
-        <p>Aucun lead ne correspond à votre recherche.</p>
-      </div>
+      <Pagination 
+        v-if="totalPages > 1"
+        v-model:currentPage="currentPage"
+        :totalPages="totalPages"
+      />
 
-      <DashboardTable 
-        v-else 
-        :leads="filteredLeads" 
-        :isAdmin="isAdmin" 
-        @view="viewLead" 
-        @updateStatus="updateLeadStatus" 
+      <LeadModal 
+        :isOpen="isModalOpen"
+        :lead="selectedLead"
+        @close="closeModal"
+      >
+        <template #footer>
+          <button type="button" class="btn-primary" @click="showToast('Action effectuée avec succès !'); closeModal()">
+            Valider les modifications
+          </button>
+        </template>
+      </LeadModal>
+
+      <ToastNotification 
+        :show="toast.show"
+        :message="toast.message"
+        :type="toast.type"
+        @close="toast.show = false"
       />
     </div>
-  </div>
+  </NuxtLayout>
 </template>
 
 <style scoped>
 .dashboard-container {
-  min-height: 100vh;
-  background-color: #f4f6f9;
-  padding: 2rem 1rem;
-}
-.dashboard-wrapper {
-  max-width: 1200px;
-  margin: 0 auto;
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
-}
-.dashboard-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 1rem;
-  flex-wrap: wrap;
-}
-.dashboard-header h1 {
-  font-size: 1.75rem;
-  color: #1f2937;
-  margin: 0;
-}
-.subtitle {
-  color: #6b7280;
-  font-size: 0.9rem;
-  margin-top: 0.25rem;
-}
-.header-actions {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-.kpi-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1rem;
-}
-.kpi-card {
-  background: white;
-  padding: 1.25rem;
-  border-radius: 8px;
-  border: 1px solid #e5e7eb;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-.kpi-title {
-  font-size: 0.85rem;
-  color: #6b7280;
-  font-weight: 500;
-}
-.kpi-value {
-  font-size: 1.8rem;
-  font-weight: 700;
-  color: #111827;
-}
-.btn-primary {
-  background-color: #2563eb;
-  color: white;
-  padding: 0.65rem 1.25rem;
-  border-radius: 6px;
-  text-decoration: none;
-  font-weight: 600;
-  white-space: nowrap;
-}
-.btn-secondary {
-  color: #2563eb;
-  text-decoration: underline;
-  font-size: 0.9rem;
-}
-.empty-state, .loading-state {
-  background: white;
-  padding: 3rem;
-  text-align: center;
-  border-radius: 8px;
-  color: #6b7280;
-}
-.error-message {
-  padding: 0.75rem;
-  background-color: #fee2e2;
-  color: #991b1b;
-  border-radius: 6px;
-}
-.success-message {
-  padding: 0.75rem;
-  background-color: #d1fae5;
-  color: #065f46;
-  border-radius: 6px;
+  width: 100%;
 }
 
-.btn-earnings {
-  background-color: #dbeafe;
-  color: #1e40af;
-  padding: 0.5rem 0.75rem;
+.btn-primary {
+  padding: 0.5rem 1rem;
+  background-color: #2563eb;
+  color: white;
+  border: none;
   border-radius: 6px;
-  font-weight: 600;
-  font-size: 0.9rem;
-  text-decoration: none;
+  font-weight: 500;
+  cursor: pointer;
+
   &:hover {
-    background-color: #bfdbfe;
+    background-color: #1d4ed8;
+  }
+
+  &:focus-visible {
+    outline: 2px solid #2563eb;
+    outline-offset: 2px;
   }
 }
 </style>
