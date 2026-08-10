@@ -99,32 +99,38 @@ onMounted(() => {
         <table class="leads-table">
           <thead>
             <tr>
+              <th>Statut</th>
+              <th>Début estimé</th>
               <th>Société</th>
               <th>Mission</th>
               <th>Contact & Coordonnées</th>
-              <th>Début estimé</th>
               <th>Commission</th>
-              <th>Statut</th>
               <th>Créé le</th>
             </tr>
           </thead>
           <tbody>
             <tr v-for="lead in leadsList" :key="lead.id">
-              <td class="font-bold">{{ lead.companyName }}</td>
-              <td>{{ lead.missionTitle }}</td>
-              <td>
-                <div class="contact-name">{{ lead.contactFirstName }} {{ lead.contactLastName }}</div>
-                <div class="text-muted" v-if="lead.clientEmail">✉️ <a :href="`mailto:${encodeURIComponent(lead.clientEmail)}`">{{ lead.clientEmail }}</a></div>
-                <div class="text-muted" v-if="lead.clientPhone">📞 <a :href="`tel:${lead.clientPhone}`">{{ lead.clientPhone }}</a></div>
-              </td>
-              <td>{{ formatDate(lead.missionStartDate) }}</td>
-              <td>{{ lead.commissionRate }}%</td>
-              <td>
+              <td data-label="Statut">
                 <span class="badge" :class="getStatusBadge(lead.status).class">
                   {{ getStatusBadge(lead.status).label }}
                 </span>
               </td>
-              <td>{{ formatDate(lead.createdAt) }}</td>
+              <td data-label="Début estimé">{{ formatDate(lead.missionStartDate) }}</td>
+              <td data-label="Société" class="font-bold">{{ lead.companyName }}</td>
+              <td data-label="Mission">{{ lead.missionTitle }}</td>
+              <td data-label="Contact & Coordonnées">
+                <div class="contact-info-wrapper">
+                  <div class="contact-name">{{ lead.contactFirstName }} {{ lead.contactLastName }}</div>
+                  <div class="text-muted" v-if="lead.clientEmail">
+                    ✉️ <a :href="`mailto:${encodeURIComponent(lead.clientEmail)}`">{{ lead.clientEmail }}</a>
+                  </div>
+                  <div class="text-muted" v-if="lead.clientPhone">
+                    📞 <a :href="`tel:${lead.clientPhone}`">{{ lead.clientPhone }}</a>
+                  </div>
+                </div>
+              </td>
+              <td data-label="Commission">{{ lead.commissionRate }}%</td>
+              <td data-label="Créé le">{{ formatDate(lead.createdAt) }}</td>
             </tr>
           </tbody>
         </table>
@@ -150,6 +156,7 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 1rem;
 }
 .dashboard-header h1 {
   font-size: 1.75rem;
@@ -189,7 +196,7 @@ onMounted(() => {
   background: white;
   border-radius: 8px;
   border: 1px solid #e5e7eb;
-  overflow-x: auto;
+  overflow: hidden;
 }
 .leads-table {
   width: 100%;
@@ -212,14 +219,16 @@ onMounted(() => {
 }
 .font-bold { font-weight: 600; color: #111827; }
 .contact-name { font-weight: 500; color: #111827; margin-bottom: 0.15rem; }
-.text-muted { color: #6b7280; font-size: 0.8rem; line-height: 1.2; }
+.text-muted { color: #6b7280; font-size: 0.8rem; line-height: 1.2; word-break: break-all; }
 
 /* Badges */
 .badge {
+  width:max-content;
   padding: 0.25rem 0.6rem;
   border-radius: 9999px;
   font-size: 0.75rem;
   font-weight: 600;
+  display: inline-block;
 }
 .badge-pending { background-color: #fef3c7; color: #92400e; }
 .badge-accepted { background-color: #d1fae5; color: #065f46; }
@@ -233,6 +242,7 @@ onMounted(() => {
   border-radius: 6px;
   text-decoration: none;
   font-weight: 600;
+  white-space: nowrap;
 }
 .btn-secondary {
   color: #2563eb;
@@ -250,5 +260,61 @@ onMounted(() => {
   background-color: #fee2e2;
   color: #991b1b;
   border-radius: 6px;
+}
+
+/* --- RESPONSIVE MOBILE CSS (< 768px) --- */
+@media (max-width: 768px) {
+  .dashboard-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .dashboard-header .btn-primary {
+    text-align: center;
+  }
+  .table-container {
+    background: transparent;
+    border: none;
+  }
+  .leads-table, 
+  .leads-table thead, 
+  .leads-table tbody, 
+  .leads-table th, 
+  .leads-table td, 
+  .leads-table tr {
+    display: block;
+  }
+  .leads-table thead {
+    display: none;
+  }
+  .leads-table tr {
+    background: white;
+    margin-bottom: 1rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 1rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  }
+  .leads-table td {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 0.6rem 0;
+    border-bottom: 1px solid #f3f4f6;
+    text-align: right;
+  }
+  .leads-table td:last-child {
+    border-bottom: none;
+  }
+  .leads-table td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    color: #374151;
+    text-align: left;
+    margin-right: 1rem;
+    flex-shrink: 0;
+  }
+  .contact-info-wrapper {
+    text-align: right;
+  }
 }
 </style>
