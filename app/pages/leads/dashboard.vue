@@ -101,7 +101,7 @@ onMounted(() => {
             <tr>
               <th>Société</th>
               <th>Mission</th>
-              <th>Contact</th>
+              <th>Contact & Coordonnées</th>
               <th>Début estimé</th>
               <th>Commission</th>
               <th>Statut</th>
@@ -113,8 +113,9 @@ onMounted(() => {
               <td class="font-bold">{{ lead.companyName }}</td>
               <td>{{ lead.missionTitle }}</td>
               <td>
-                <div>{{ lead.contactFirstName }} {{ lead.contactLastName }}</div>
-                <small class="text-muted">{{ lead.clientEmail }}</small>
+                <div class="contact-name">{{ lead.contactFirstName }} {{ lead.contactLastName }}</div>
+                <div class="text-muted" v-if="lead.clientEmail">✉️ <a :href="`mailto:${encodeURIComponent(lead.clientEmail)}`">{{ lead.clientEmail }}</a></div>
+                <div class="text-muted" v-if="lead.clientPhone">📞 <a :href="`tel:${lead.clientPhone}`">{{ lead.clientPhone }}</a></div>
               </td>
               <td>{{ formatDate(lead.missionStartDate) }}</td>
               <td>{{ lead.commissionRate }}%</td>
@@ -207,9 +208,11 @@ onMounted(() => {
   padding: 1rem;
   border-bottom: 1px solid #f3f4f6;
   color: #4b5563;
+  vertical-align: top;
 }
 .font-bold { font-weight: 600; color: #111827; }
-.text-muted { color: #9ca3af; font-size: 0.8rem; }
+.contact-name { font-weight: 500; color: #111827; margin-bottom: 0.15rem; }
+.text-muted { color: #6b7280; font-size: 0.8rem; line-height: 1.2; }
 
 /* Badges */
 .badge {

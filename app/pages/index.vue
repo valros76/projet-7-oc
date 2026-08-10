@@ -6,6 +6,9 @@
     <div v-if="user" class="card success-card">
       <h3>Bienvenue, {{ user.firstName }} {{ user.lastName }} !</h3>
       <p><strong>Email :</strong> {{ user.email }}</p>
+      <NuxtLink to="/leads/dashboard" class="btn-valid">
+        Accéder au dashboard
+      </NuxtLink>
       <button @click="handleLogout" class="btn-danger">Se déconnecter</button>
     </div>
 
@@ -107,4 +110,13 @@ const handleLogout = async () => {
 </script>
 
 <style scoped>
+.btn-valid{
+  width:max-content;
+  display:block;
+  padding:.25rem .5rem;
+  background-color:forestgreen;
+  color:white;
+  border-radius:.4rem;
+  margin:.5rem;
+}
 </style>
