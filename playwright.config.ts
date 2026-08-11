@@ -22,7 +22,7 @@ export default defineConfig<ConfigOptions>({
   },
 
   webServer: {
-    command: 'bun run build && bun run dev',
+    command: 'bun run build && node .output/server/index.mjs',
     url: 'http://localhost:3000',
     reuseExistingServer: !process.env.CI,
     timeout: 180 * 1000, // On laisse 3 minutes max pour le démarrage de Nuxt
