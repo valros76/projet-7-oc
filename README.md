@@ -613,6 +613,8 @@ La pipeline automatisera ce parcours :
 - Lancement des tests automatisés.
 - Si les tests sont validés, le code est push sur `staging`.
 
+Créez également une variable d'environnement `DB_ROOT_PASSWORD`, sur votre workflow pour permettre la configuration et la connexion à la BDD, lors des tests E2E.
+
 Selon la configuration actuelle du projet, il peut notamment effectuer :
 
 1. Installation des dépendances ;
