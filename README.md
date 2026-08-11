@@ -601,6 +601,18 @@ Le projet dispose d'un pipeline GitHub Actions situé dans :
 
 Le pipeline permet d'automatiser les contrôles avant déploiement.
 
+Pour permettre un fonctionnement parfait avec ce projet, vous aurez besoin des branches suivantes : 
+```txt
+- master
+- staging
+- dev
+```
+
+La pipeline automatisera ce parcours : 
+- Push en `dev`.
+- Lancement des tests automatisés.
+- Si les tests sont validés, le code est push sur `staging`.
+
 Selon la configuration actuelle du projet, il peut notamment effectuer :
 
 1. Installation des dépendances ;
