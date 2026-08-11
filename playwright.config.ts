@@ -21,6 +21,20 @@ export default defineConfig<ConfigOptions>({
     },
   },
 
+  webServer: {
+    command: 'bun run dev',
+    url: 'http://localhost:3000',
+    reuseExistingServer: !process.env.CI,
+    timeout: 120 * 1000, // On laisse 2 minutes max pour le démarrage de Nuxt
+    env: {
+      DB_HOST: 'localhost',
+      DB_PORT: '3306',
+      DB_USER: 'root',
+      DB_PASSWORD: process.env.DB_ROOT_PASSWORD || 'rootpassword',
+      DB_NAME: 'webdevoo_lead',
+    },
+  },
+
   projects: [
     {
       name: 'chromium',
