@@ -13,7 +13,7 @@ export default async function globalSetup() {
         host: process.env.DB_HOST || '127.0.0.1',
         port: Number(process.env.DB_PORT) || 3306,
         user: process.env.DB_USER || 'root',
-        password: process.env.DB_PASSWORD || 'rootpassword',
+        password: process.env.DB_ROOT_PASSWORD || 'rootpassword',
         database: process.env.DB_NAME || 'webdevoo_lead',
       })
       break
