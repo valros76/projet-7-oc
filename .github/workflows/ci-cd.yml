@@ -98,6 +98,8 @@ jobs:
 
       - name: Run Playwright E2E Tests
         run: npx playwright test
+        env:
+          DB_ROOT_PASSWORD: ${{ secrets.DB_ROOT_PASSWORD }}
 
   # 3. Promotion automatique de dev vers staging si les tests passent
   push-to-staging:
