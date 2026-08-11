@@ -86,7 +86,7 @@ jobs:
       - name: Run Database Migrations
         run: bun run db:push
         env:
-          DB_HOST: localhost
+          DB_HOST: mysql
           DB_PORT: 3306
           DB_USER: root
           DB_PASSWORD: ${{ secrets.DB_ROOT_PASSWORD }}
@@ -95,7 +95,11 @@ jobs:
       - name: Run Playwright E2E Tests
         run: npx playwright test
         env:
-          DB_ROOT_PASSWORD: ${{ secrets.DB_ROOT_PASSWORD }}
+          DB_HOST: mysql
+          DB_PORT: '3306'
+          DB_USER: root
+          DB_PASSWORD: ${{ secrets.DB_ROOT_PASSWORD }}
+          DB_NAME: webdevoo_lead
 
   # 3. Promotion automatique de dev vers staging si les tests passent
   push-to-staging:

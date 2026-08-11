@@ -21,7 +21,6 @@ test.describe('Parcours de gestion des leads et Sécurité', () => {
     // -------------------------------------------------------------------------
     await page.getByRole('button', { name: 'Inscription' }).click()
 
-    // SECURITÉ CI : S'assurer que le formulaire d'inscription est bien affiché avant de remplir
     const firstNameInput = page.locator('input[placeholder="Prénom"], input[name="firstName"]')
     await expect(firstNameInput).toBeVisible({ timeout: 10000 })
 
@@ -31,7 +30,6 @@ test.describe('Parcours de gestion des leads et Sécurité', () => {
     await page.fill('input[type="email"], input[name="email"]', uniqueEmail)
     await page.fill('input[type="password"], input[name="password"]', password)
 
-    // Attendre la réponse API de l'inscription (200 ou 201)
     const registerResponsePromise = page.waitForResponse(
       (response) => response.url().includes('/api/auth/register') && [200, 201].includes(response.status())
     )
@@ -44,7 +42,6 @@ test.describe('Parcours de gestion des leads et Sécurité', () => {
     // -------------------------------------------------------------------------
     await page.getByRole('button', { name: 'Connexion' }).click()
 
-    // SECURITÉ CI : S'assurer que les champs de connexion sont visibles
     const loginEmailInput = page.locator('input[type="email"], input[name="email"]')
     await expect(loginEmailInput).toBeVisible({ timeout: 10000 })
 
@@ -70,7 +67,6 @@ test.describe('Parcours de gestion des leads et Sécurité', () => {
     await page.click('a[href="/leads/new"]')
     await page.waitForURL('**/leads/new')
 
-    // Remplissage avec les bons IDs du formulaire
     await page.fill('#companyName', 'Société Test E2E')
     await page.fill('#clientSiret', '12345678901234')
     await page.fill('#contactFirstName', 'Alice')
@@ -80,7 +76,6 @@ test.describe('Parcours de gestion des leads et Sécurité', () => {
     await page.fill('#missionTitle', 'Développement application mobile')
     await page.fill('#missionStartDate', '2026-09-01')
 
-    // Attendre la réponse POST de la création API (200 ou 201)
     const createLeadPromise = page.waitForResponse(
       (response) => response.url().includes('/api/leads') && response.request().method() === 'POST' && [200, 201].includes(response.status())
     )
@@ -111,7 +106,12 @@ test.describe('Parcours de gestion des leads et Sécurité', () => {
     await page.fill('input[placeholder="Téléphone"], input[name="phone"]', '0612345678')
     await page.fill('input[type="email"], input[name="email"]', uniqueEmail)
     await page.fill('input[type="password"], input[name="password"]', password)
+
+    const registerResponsePromise = page.waitForResponse(
+      (response) => response.url().includes('/api/auth/register') && [200, 201].includes(response.status())
+    )
     await page.getByRole('button', { name: "S'inscrire" }).click()
+    await registerResponsePromise
 
     await page.getByRole('button', { name: 'Connexion' }).click()
     
@@ -120,10 +120,16 @@ test.describe('Parcours de gestion des leads et Sécurité', () => {
 
     await loginEmailInput.fill(uniqueEmail)
     await page.fill('input[type="password"], input[name="password"]', password)
+
+    const loginResponsePromise = page.waitForResponse(
+      (response) => response.url().includes('/api/auth/login') && [200, 201].includes(response.status())
+    )
     await page.getByRole('button', { name: 'Se connecter' }).click()
+    await loginResponsePromise
 
     // 2. Attente de l'arrivée sur le dashboard
     await page.waitForURL('**/leads/dashboard')
+    await expect(page.getByRole('heading', { name: 'Tableau de bord' })).toBeVisible()
 
     // 3. Clic sur le bouton de déconnexion
     await page.locator('#main-navigation button.btn-logout').click()

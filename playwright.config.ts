@@ -25,9 +25,9 @@ export default defineConfig<ConfigOptions>({
     command: 'bun run build && node .output/server/index.mjs',
     url: 'http://localhost:3000',
     reuseExistingServer: !process.env.CI,
-    timeout: 180 * 1000, // On laisse 3 minutes max pour le démarrage de Nuxt
+    timeout: 180 * 1000,
     env: {
-      DB_HOST: '127.0.0.1',
+      DB_HOST: process.env.DB_HOST || '127.0.0.1',
       DB_PORT: '3306',
       DB_USER: 'root',
       DB_PASSWORD: process.env.DB_ROOT_PASSWORD || 'rootpassword',
