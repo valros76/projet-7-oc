@@ -11,7 +11,6 @@ test.describe('Parcours de gestion des leads et Sécurité', () => {
   })
 
   test("Inscription, connexion et création d'un nouveau lead", async ({ page }) => {
-    // Email unique à chaque exécution pour éviter l'erreur "Utilisateur existe déjà"
     const uniqueEmail = `test.e2e.${Date.now()}@webdevoo.com`
     const password = 'Password123!'
 
@@ -22,7 +21,11 @@ test.describe('Parcours de gestion des leads et Sécurité', () => {
     // -------------------------------------------------------------------------
     await page.getByRole('button', { name: 'Inscription' }).click()
 
-    await page.fill('input[placeholder="Prénom"], input[name="firstName"]', 'Jean')
+    // SECURITÉ CI : S'assurer que le formulaire d'inscription est bien affiché avant de remplir
+    const firstNameInput = page.locator('input[placeholder="Prénom"], input[name="firstName"]')
+    await expect(firstNameInput).toBeVisible({ timeout: 10000 })
+
+    await firstNameInput.fill('Jean')
     await page.fill('input[placeholder="Nom"], input[name="lastName"]', 'Dupont')
     await page.fill('input[placeholder="Téléphone"], input[name="phone"]', '0612345678')
     await page.fill('input[type="email"], input[name="email"]', uniqueEmail)
@@ -41,7 +44,11 @@ test.describe('Parcours de gestion des leads et Sécurité', () => {
     // -------------------------------------------------------------------------
     await page.getByRole('button', { name: 'Connexion' }).click()
 
-    await page.fill('input[type="email"], input[name="email"]', uniqueEmail)
+    // SECURITÉ CI : S'assurer que les champs de connexion sont visibles
+    const loginEmailInput = page.locator('input[type="email"], input[name="email"]')
+    await expect(loginEmailInput).toBeVisible({ timeout: 10000 })
+
+    await loginEmailInput.fill(uniqueEmail)
     await page.fill('input[type="password"], input[name="password"]', password)
 
     const loginResponsePromise = page.waitForResponse(
@@ -55,7 +62,7 @@ test.describe('Parcours de gestion des leads et Sécurité', () => {
     // 3. Redirection & Dashboard
     // -------------------------------------------------------------------------
     await page.waitForURL('**/leads/dashboard')
-    await expect(page.getByRole('heading', { name: 'Tableau de bord' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Tableau de bord' })).toBeVisible()
 
     // -------------------------------------------------------------------------
     // 4. Création d'un nouveau lead (Route : /leads/new)
@@ -85,8 +92,6 @@ test.describe('Parcours de gestion des leads et Sécurité', () => {
     // 5. Validation finale sur le dashboard
     // -------------------------------------------------------------------------
     await page.waitForURL('**/leads/dashboard')
-
-    // Utilisation de l'auto-attente de Playwright (retente automatiquement jusqu'à apparition du lead)
     await expect(page.locator('text=Développement application mobile')).toBeVisible({ timeout: 15000 })
   })
 
@@ -97,7 +102,11 @@ test.describe('Parcours de gestion des leads et Sécurité', () => {
     // 1. Inscription rapide & Connexion pour arriver sur le dashboard
     await page.goto('/')
     await page.getByRole('button', { name: 'Inscription' }).click()
-    await page.fill('input[placeholder="Prénom"], input[name="firstName"]', 'Paul')
+    
+    const firstNameInput = page.locator('input[placeholder="Prénom"], input[name="firstName"]')
+    await expect(firstNameInput).toBeVisible({ timeout: 10000 })
+
+    await firstNameInput.fill('Paul')
     await page.fill('input[placeholder="Nom"], input[name="lastName"]', 'Emploi')
     await page.fill('input[placeholder="Téléphone"], input[name="phone"]', '0612345678')
     await page.fill('input[type="email"], input[name="email"]', uniqueEmail)
@@ -105,15 +114,18 @@ test.describe('Parcours de gestion des leads et Sécurité', () => {
     await page.getByRole('button', { name: "S'inscrire" }).click()
 
     await page.getByRole('button', { name: 'Connexion' }).click()
-    await page.fill('input[type="email"], input[name="email"]', uniqueEmail)
+    
+    const loginEmailInput = page.locator('input[type="email"], input[name="email"]')
+    await expect(loginEmailInput).toBeVisible({ timeout: 10000 })
+
+    await loginEmailInput.fill(uniqueEmail)
     await page.fill('input[type="password"], input[name="password"]', password)
     await page.getByRole('button', { name: 'Se connecter' }).click()
 
     // 2. Attente de l'arrivée sur le dashboard
     await page.waitForURL('**/leads/dashboard')
 
-    // 3. Clic sur le bouton de déconnexion (supposé présent dans votre layout ou header du dashboard)
-    // Ajustez le sélecteur selon l'emplacement exact de votre composant Logout dans le dashboard
+    // 3. Clic sur le bouton de déconnexion
     await page.locator('#main-navigation button.btn-logout').click()
 
     // 4. Vérification du retour sur la page d'accueil
