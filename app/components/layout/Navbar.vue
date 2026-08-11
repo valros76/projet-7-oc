@@ -24,7 +24,7 @@ const closeMenu = () => {
 <template>
   <header class="main-head" role="banner">
     <div class="logo-header">
-      <span class="main-head-title">Tableau de bord</span>
+      <h1 class="main-head-title">Tableau de bord</h1>
     </div>
 
     <button 

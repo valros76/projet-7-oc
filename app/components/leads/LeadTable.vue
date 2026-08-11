@@ -14,6 +14,10 @@ const formatDate = (dateStr: string) => {
     year: "numeric"
   })
 }
+
+const viewOneLead = (lead: Partial<Lead>) => {
+  navigateTo(`/leads/${lead.id}`)
+};
 </script>
 
 <template>
@@ -33,7 +37,7 @@ const formatDate = (dateStr: string) => {
         </tr>
       </thead>
       <tbody>
-        <tr v-for="lead in leadsList" :key="lead.id">
+        <tr v-for="lead in leadsList" :key="lead.id" class="lead-row" @click="viewOneLead(lead)">
           <td data-label="Société" class="font-bold">{{ lead.companyName }}</td>
           <td data-label="Mission">{{ lead.missionTitle }}</td>
           <td data-label="Date">{{ formatDate(lead.createdAt) }}</td>
@@ -107,5 +111,15 @@ const formatDate = (dateStr: string) => {
   text-align: center;
   color: #64748b;
   font-size: 0.95rem;
+}
+
+.lead-row{
+  cursor:pointer;
+  background-color:inherit;
+  transition:background-color .375s ease-out;
+
+  &:hover{
+    background-color:#ededed;
+  }
 }
 </style>

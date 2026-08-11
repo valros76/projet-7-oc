@@ -35,6 +35,7 @@ services:
       - DB_PORT=3306
       - JWT_ACCESS_SECRET=votre_cle_secrete_access_locale
       - JWT_REFRESH_SECRET=votre_cle_secrete_refresh_locale
+      - TZ=Europe/Paris
     volumes:
       - .:/app
       - /app/node_modules

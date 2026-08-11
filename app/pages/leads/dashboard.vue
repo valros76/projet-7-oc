@@ -11,18 +11,28 @@ definePageMeta({
   middleware: 'auth'
 })
 
-// États de l'application
-const loading = ref(false)
+const { data: leadsData, pending: loading, refresh } = await useFetch<any>('/api/leads', {
+  $fetch: useNuxtApp().$api
+})
+
+const rawLeads = computed(() => {
+  const val = leadsData.value
+  if (Array.isArray(val)) return val
+  if (val && typeof val === 'object') {
+    if (Array.isArray((val as any).leads)) return (val as any).leads
+    if (Array.isArray((val as any).data)) return (val as any).data
+  }
+  return []
+})
+
 const searchQuery = ref('')
 const selectedStatus = ref('all')
 const currentPage = ref(1)
 const itemsPerPage = ref(5)
 
-// État de la modale
 const isModalOpen = ref(false)
 const selectedLead = ref<any | null>(null)
 
-// État du Toast
 const toast = ref({
   show: false,
   message: '',
@@ -36,34 +46,25 @@ const showToast = (message: string, type: 'success' | 'error' | 'info' = 'succes
   }, 4000)
 }
 
-// Données de test (à remplacer par ton appel API / Store Pinia)
-const leadsList = ref([
-  { id: 1, companyName: 'Tech Corp', missionTitle: 'Refonte UI/UX', createdAt: '2026-06-10', status: 'pending' },
-  { id: 2, companyName: 'Innovate SA', missionTitle: 'Migration Cloud', createdAt: '2026-06-08', status: 'accepted' },
-  { id: 3, companyName: 'Digital Flow', missionTitle: 'Audit Sécurité', createdAt: '2026-06-01', status: 'finished' },
-  { id: 4, companyName: 'Web Agency', missionTitle: 'Création site e-commerce', createdAt: '2026-05-28', status: 'refused' },
-])
-
-// Calcul des KPI
 const kpis = computed(() => {
-  const total = leadsList.value.length
-  const pending = leadsList.value.filter(l => l.status === 'pending').length
-  const accepted = leadsList.value.filter(l => l.status === 'accepted').length
-  const finished = leadsList.value.filter(l => l.status === 'finished').length
+  const total = rawLeads.value.length
+  const pending = rawLeads.value.filter((l: any) => l.status === 'pending').length
+  const accepted = rawLeads.value.filter((l: any) => l.status === 'accepted').length
+  const finished = rawLeads.value.filter((l: any) => l.status === 'finished').length
   return { total, pending, accepted, finished }
 })
 
-// Filtrage intelligent
 const filteredLeads = computed(() => {
-  return leadsList.value.filter(lead => {
-    const matchesSearch = lead.companyName.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-                          lead.missionTitle.toLowerCase().includes(searchQuery.value.toLowerCase())
+  return rawLeads.value.filter((lead: any) => {
+    const company = lead.companyName || ''
+    const mission = lead.missionTitle || ''
+    const matchesSearch = company.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
+                          mission.toLowerCase().includes(searchQuery.value.toLowerCase())
     const matchesStatus = selectedStatus.value === 'all' || lead.status === selectedStatus.value
     return matchesSearch && matchesStatus
   })
 })
 
-// Pagination des résultats filtrés
 const totalPages = computed(() => Math.ceil(filteredLeads.value.length / itemsPerPage.value) || 1)
 
 const paginatedLeads = computed(() => {
@@ -72,7 +73,6 @@ const paginatedLeads = computed(() => {
   return filteredLeads.value.slice(start, end)
 })
 
-// Actions UI
 const openLeadDetails = (lead: any) => {
   selectedLead.value = lead
   isModalOpen.value = true
@@ -85,7 +85,6 @@ const closeModal = () => {
 </script>
 
 <template>
-  <NuxtLayout>
     <div class="dashboard-container">
       <LeadKpiGrid v-bind="kpis" />
 
@@ -125,7 +124,6 @@ const closeModal = () => {
         @close="toast.show = false"
       />
     </div>
-  </NuxtLayout>
 </template>
 
 <style scoped>

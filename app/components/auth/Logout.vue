@@ -1,6 +1,8 @@
 <script setup lang="ts">
-const handleLogout = () => {
-  navigateTo('/')
+const { logout } = useAuth()
+
+const handleLogout = async () => {
+  await logout()
 }
 </script>
 

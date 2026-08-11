@@ -65,12 +65,18 @@
 import { ref } from 'vue'
 import Logout from '~/components/auth/Logout.vue'
 
-const { user, login, register } = useAuth()
+const { user, accessToken, login, register, logout } = useAuth()
+const router = useRouter()
+
+// Sécurité : Si l'état utilisateur existe mais que le token n'est plus là (expiré/invalide),
+// on nettoie automatiquement la session pour ne pas bloquer l'affichage sur index.
+if (user.value && !accessToken.value) {
+  await logout()
+}
 
 const isLoginMode = ref(true)
 const errorMessage = ref('')
 const successMessage = ref('')
-const router = useRouter()
 
 const form = ref({
   firstName: '',
