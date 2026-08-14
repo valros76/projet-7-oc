@@ -2,25 +2,35 @@ name: CI/CD Pipeline
 
 on:
   push:
-    branches: [ "dev", "master" ]
+    branches: ["dev", "staging", "master"]
   pull_request:
-    branches: [ "dev", "master" ]
+    branches: ["dev", "staging", "master"]
 
 jobs:
-  # 1. Tests et qualité (exécuté à chaque push / PR)
+  # 1. Tests unitaires, type-check & lint
   test-and-lint:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v1
         with:
           bun-version: latest
 
+      - name: Cache Bun dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lockb', '**/bun.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
+
       - name: Install dependencies
-        run: bun install
+        run: bun install --frozen-lockfile
 
       - name: Type check & Lint
         run: npx tsc --noEmit
@@ -28,11 +38,113 @@ jobs:
       - name: Run Unit Tests
         run: bun run test:unit
 
-  # 2. Build de production (Uniquement sur master si les tests passent)
-  build:
+  # 2. Tests E2E Playwright (Version 1.61.1 alignée)
+  e2e-tests:
     needs: test-and-lint
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/master'
+    
+    # Image officielle Playwright alignée sur la version ^1.61.1
+    container:
+      image: mcr.microsoft.com/playwright:v1.61.1-jammy
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: ${{ secrets.DB_ROOT_PASSWORD }}
+          MYSQL_DATABASE: webdevoo_lead
+        ports:
+          - 3306:3306
+        options: --health-cmd="mysqladmin ping -h localhost" --health-interval=10s --health-timeout=5s --health-retries=3
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install system dependencies (unzip)
+        run: |
+          apt-get update && apt-get install -y unzip
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Cache Bun dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lockb', '**/bun.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Run Database Migrations
+        run: bun run db:push
+        env:
+          DB_HOST: mysql
+          DB_PORT: 3306
+          DB_USER: root
+          DB_PASSWORD: ${{ secrets.DB_ROOT_PASSWORD }}
+          DB_NAME: webdevoo_lead
+
+      - name: Run Playwright E2E Tests
+        run: npx playwright test
+        env:
+          DB_HOST: mysql
+          DB_PORT: '3306'
+          DB_USER: root
+          DB_PASSWORD: ${{ secrets.DB_ROOT_PASSWORD }}
+          DB_NAME: webdevoo_lead
+
+  # 3. Promotion automatique de dev vers staging si les tests passent
+  push-to-staging:
+    needs: [test-and-lint, e2e-tests]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/dev' && github.event_name == 'push'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Push to staging branch
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          branch: staging
+          force: true
+
+  # 4. Promotion automatique de staging vers master si les tests passent sur staging
+  push-to-master:
+    needs: [test-and-lint, e2e-tests]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/staging' && github.event_name == 'push'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Push to master branch
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          branch: master
+          force: true
+
+  # 5. Build et Release (exécuté sur master après la synchronisation)
+  build-and-release:
+    needs: [push-to-master]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -44,7 +156,7 @@ jobs:
           cache: true
 
       - name: Install dependencies
-        run: bun install
+        run: bun install --frozen-lockfile
 
       - name: Build Nuxt Application
         run: bun run build
@@ -55,23 +167,10 @@ jobs:
           name: nuxt-production-build
           path: .output/
 
-  # 3. Release Automatisée (Repris de votre ancien projet)
-  release:
-    needs: build
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/master'
-    permissions:
-      contents: write
-      issues: write
-      pull-requests: write
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: "22"
 
       - name: Semantic Release
         run: npx -p semantic-release -p @semantic-release/commit-analyzer -p @semantic-release/release-notes-generator -p @semantic-release/changelog -p @semantic-release/git -p @semantic-release/github semantic-release

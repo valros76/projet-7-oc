@@ -1,53 +1,98 @@
+interface AuthUser {
+  id: number
+  email: string
+  firstName: string
+  lastName: string
+  role: string
+}
+
+interface AuthResponse {
+  accessToken: string
+  user: AuthUser
+}
+
+interface RefreshResponse {
+  accessToken: string
+}
+
 export const useAuth = () => {
-  // Utilisation de useCookie pour persister le token à travers les rechargements (F5) et le SSR
-  const accessToken = useCookie('auth_token', {
-    maxAge: 60 * 15, // Ajustez selon la durée de vie de votre access token (ex: 15 minutes)
+  const accessToken = useCookie<string | null>('wdv_leads_access_token', {
+    maxAge: 60 * 15,
+    sameSite: 'lax',
+    default: () => null,
+  })
+
+  const user = useCookie<AuthUser | null>('auth_user', {
+    default: () => null,
     sameSite: 'lax',
   })
 
-  // Stockage de l'utilisateur dans un cookie ou un state persistant
-  const user = useCookie('auth_user', {
-    default: () => null as { id: number; email: string; firstName: string; lastName: string; role: string } | null,
-    sameSite: 'lax',
-  })
+  const login = async (
+    credentials: {
+      email: string
+      password: string
+    },
+  ) => {
+    const res = await $fetch<AuthResponse>(
+      '/api/auth/login',
+      {
+        method: 'POST',
+        body: credentials,
+      },
+    )
 
-  const login = async (credentials: { email: string; password: string }) => {
-    const res: any = await $fetch('/api/auth/login', {
-      method: 'POST',
-      body: credentials,
-    })
     accessToken.value = res.accessToken
     user.value = res.user
+
+    return res
   }
 
-  const register = async (data: any) => {
-    return await $fetch('/api/auth/register', {
-      method: 'POST',
-      body: data,
-    })
+  const register = async (
+    data: Record<string, unknown>,
+  ) => {
+    return await $fetch(
+      '/api/auth/register',
+      {
+        method: 'POST',
+        body: data,
+      },
+    )
   }
 
   const logout = async () => {
     try {
-      await $fetch('/api/auth/logout', { method: 'POST' })
+      await $fetch(
+        '/api/auth/logout',
+        {
+          method: 'POST',
+        },
+      )
     } catch {
-      // Ignore network errors on logout
     } finally {
       accessToken.value = null
       user.value = null
-      navigateTo('/')
+
+      await navigateTo('/')
     }
   }
 
   const refreshSession = async () => {
     try {
-      const res: any = await $fetch('/api/auth/refresh', {
-        method: 'POST',
-      })
+      const res = await $fetch<RefreshResponse>(
+        '/api/auth/refresh',
+        {
+          method: 'POST',
+        },
+      )
+
       accessToken.value = res.accessToken
-    } catch {
+
+      return res
+    } catch (error) {
       accessToken.value = null
       user.value = null
+
+      throw error
     }
   }
 

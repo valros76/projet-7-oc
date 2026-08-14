@@ -1,206 +1,155 @@
 <script setup lang="ts">
-import type { LeadsApiResponse } from '@shared/types'
+import { ref, computed } from 'vue'
+import LeadKpiGrid from '~/components/leads/LeadKpiGrid.vue'
+import LeadFilters from '~/components/leads/LeadFilters.vue'
+import LeadTable from '~/components/leads/LeadTable.vue'
+import LeadModal from '~/components/leads/LeadModal.vue'
+import Pagination from '~/components/common/Pagination.vue'
+import ToastNotification from '~/components/common/ToastNotification.vue'
 
 definePageMeta({
   middleware: 'auth'
 })
 
-const { $api } = useNuxtApp()
-const { user, logout } = useAuth()
+const { data: leadsData, pending: loading, refresh } = await useFetch<any>('/api/leads', {
+  $fetch: useNuxtApp().$api
+})
 
-const { data: response, refresh, error } = await useAsyncData<LeadsApiResponse>('leads-list', () => 
-  $api('/api/leads')
-)
+const rawLeads = computed(() => {
+  const val = leadsData.value
+  if (Array.isArray(val)) return val
+  if (val && typeof val === 'object') {
+    if (Array.isArray((val as any).leads)) return (val as any).leads
+    if (Array.isArray((val as any).data)) return (val as any).data
+  }
+  return []
+})
 
-const leads = computed(() => response.value?.leads || [])
+const searchQuery = ref('')
+const selectedStatus = ref('all')
+const currentPage = ref(1)
+const itemsPerPage = ref(5)
+
+const isModalOpen = ref(false)
+const selectedLead = ref<any | null>(null)
+
+const toast = ref({
+  show: false,
+  message: '',
+  type: 'success' as 'success' | 'error' | 'info'
+})
+
+const showToast = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
+  toast.value = { show: true, message, type }
+  setTimeout(() => {
+    toast.value.show = false
+  }, 4000)
+}
+
+const kpis = computed(() => {
+  const total = rawLeads.value.length
+  const pending = rawLeads.value.filter((l: any) => l.status === 'pending').length
+  const accepted = rawLeads.value.filter((l: any) => l.status === 'accepted').length
+  const finished = rawLeads.value.filter((l: any) => l.status === 'finished').length
+  return { total, pending, accepted, finished }
+})
+
+const filteredLeads = computed(() => {
+  return rawLeads.value.filter((lead: any) => {
+    const company = lead.companyName || ''
+    const mission = lead.missionTitle || ''
+    const matchesSearch = company.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
+                          mission.toLowerCase().includes(searchQuery.value.toLowerCase())
+    const matchesStatus = selectedStatus.value === 'all' || lead.status === selectedStatus.value
+    return matchesSearch && matchesStatus
+  })
+})
+
+const totalPages = computed(() => Math.ceil(filteredLeads.value.length / itemsPerPage.value) || 1)
+
+const paginatedLeads = computed(() => {
+  const start = (currentPage.value - 1) * itemsPerPage.value
+  const end = start + itemsPerPage.value
+  return filteredLeads.value.slice(start, end)
+})
+
+const openLeadDetails = (lead: any) => {
+  selectedLead.value = lead
+  isModalOpen.value = true
+}
+
+const closeModal = () => {
+  isModalOpen.value = false
+  selectedLead.value = null
+}
 </script>
 
 <template>
-  <div class="dashboard-container">
-    <div class="dashboard-wrapper">
-      
-      <header class="dashboard-header">
-        <div class="header-info">
-          <h1>Tableau de bord - Apporteur</h1>
-          <p v-if="user" class="subtitle">Connecté en tant que : <strong>{{ user.firstName }} {{ user.lastName }}</strong></p>
-        </div>
-        <div class="header-actions">
-          <NuxtLink to="/leads/new" class="btn-primary">
-            + Nouveau Lead
-          </NuxtLink>
-          <button @click="logout" class="btn-danger">
-            Se déconnecter
+    <div class="dashboard-container">
+      <LeadKpiGrid v-bind="kpis" />
+
+      <LeadFilters 
+        v-model:searchQuery="searchQuery"
+        v-model:selectedStatus="selectedStatus"
+      />
+
+      <LeadTable 
+        :leadsList="paginatedLeads" 
+        :loading="loading"
+        @row-click="openLeadDetails"
+      />
+
+      <Pagination 
+        v-if="totalPages > 1"
+        v-model:currentPage="currentPage"
+        :totalPages="totalPages"
+      />
+
+      <LeadModal 
+        :isOpen="isModalOpen"
+        :lead="selectedLead"
+        @close="closeModal"
+      >
+        <template #footer>
+          <button type="button" class="btn-primary" @click="showToast('Action effectuée avec succès !'); closeModal()">
+            Valider les modifications
           </button>
-        </div>
-      </header>
+        </template>
+      </LeadModal>
 
-      <section class="dashboard-card">
-        <h2>Mes Leads enregistrés</h2>
-
-        <div v-if="error" class="error-message">
-          Erreur lors du chargement des leads.
-        </div>
-
-        <div v-else-if="leads.length === 0" class="empty-state">
-          Aucun lead pour le moment. Créez votre première opportunité !
-        </div>
-
-        <div v-else class="table-responsive">
-          <table class="leads-table">
-            <thead>
-              <tr>
-                <th>Société</th>
-                <th>Contact</th>
-                <th>Mission</th>
-                <th>Statut</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="lead in leads" :key="lead.id">
-                <td class="font-weight-bold">{{ lead.companyName }}</td>
-                <td>{{ lead.contactFirstName }} {{ lead.contactLastName }}</td>
-                <td>{{ lead.missionTitle }}</td>
-                <td>
-                  <span class="badge" :class="`badge-${lead.status}`">
-                    {{ lead.status }}
-                  </span>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </section>
-
+      <ToastNotification 
+        :show="toast.show"
+        :message="toast.message"
+        :type="toast.type"
+        @close="toast.show = false"
+      />
     </div>
-  </div>
 </template>
 
 <style scoped>
 .dashboard-container {
-  min-height: 100vh;
-  background-color: #f4f6f9;
-  padding: 2rem 1rem;
-}
-
-.dashboard-wrapper {
-  max-width: 1100px;
-  margin: 0 auto;
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
-}
-
-.dashboard-header {
-  background: #ffffff;
-  padding: 1.5rem;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 1rem;
-}
-
-.dashboard-header h1 {
-  font-size: 1.5rem;
-  color: #333333;
-  margin-bottom: 0.25rem;
-}
-
-.subtitle {
-  color: #666666;
-  font-size: 0.9rem;
-}
-
-.header-actions {
-  display: flex;
-  gap: 0.75rem;
-}
-
-.dashboard-card {
-  background: #ffffff;
-  padding: 1.5rem;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-}
-
-.dashboard-card h2 {
-  font-size: 1.2rem;
-  color: #333333;
-  margin-bottom: 1rem;
-}
-
-.table-responsive {
-  overflow-x: auto;
-}
-
-.leads-table {
   width: 100%;
-  border-collapse: collapse;
-  text-align: left;
 }
 
-.leads-table th,
-.leads-table td {
-  padding: 0.75rem 1rem;
-  border-bottom: 1px solid #e5e7eb;
-  font-size: 0.9rem;
-  color: #4b5563;
-}
-
-.leads-table th {
-  background-color: #f9fafb;
-  font-weight: 600;
-  color: #374151;
-}
-
-.font-weight-bold {
-  font-weight: 600;
-  color: #111827;
-}
-
-.badge {
-  display: inline-block;
-  padding: 0.25rem 0.75rem;
-  border-radius: 9999px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  text-transform: uppercase;
-}
-
-.badge-pending {
-  background-color: #fef3c7;
-  color: #92400e;
-}
-
-.badge-accepted {
-  background-color: #d1fae5;
-  color: #065f46;
-}
-
-.badge-refused {
-  background-color: #fee2e2;
-  color: #991b1b;
-}
-
-.badge-finished {
-  background-color: #dbeafe;
-  color: #1e40af;
-}
-
-.error-message {
-  padding: 1rem;
-  background-color: #fee2e2;
-  color: #991b1b;
+.btn-primary {
+  padding: 0.5rem 1rem;
+  background-color: #2563eb;
+  color: white;
+  border: none;
   border-radius: 6px;
-  font-size: 0.9rem;
-}
+  font-weight: 500;
+  cursor: pointer;
 
-.empty-state {
-  text-align: center;
-  padding: 3rem 0;
-  color: #6b7280;
-  font-size: 0.95rem;
+  &:hover {
+    background-color: #1d4ed8;
+  }
+
+  &:focus-visible {
+    outline: 2px solid #2563eb;
+    outline-offset: 2px;
+  }
 }
 </style>

@@ -21,6 +21,20 @@ export default defineConfig<ConfigOptions>({
     },
   },
 
+  webServer: {
+    command: 'bun run build && node .output/server/index.mjs',
+    url: 'http://localhost:3000',
+    reuseExistingServer: !process.env.CI,
+    timeout: 180 * 1000,
+    env: {
+      DB_HOST: process.env.DB_HOST || '127.0.0.1',
+      DB_PORT: '3306',
+      DB_USER: 'root',
+      DB_PASSWORD: process.env.DB_ROOT_PASSWORD || 'rootpassword',
+      DB_NAME: 'webdevoo_lead',
+    },
+  },
+
   projects: [
     {
       name: 'chromium',

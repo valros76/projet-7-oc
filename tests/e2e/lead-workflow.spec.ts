@@ -1,44 +1,141 @@
 import { test, expect } from '@playwright/test'
 
-test.describe('Parcours de gestion des leads', () => {
-  test('Création réussie d\'un nouveau lead avec session pré-établie', async ({ page, context }) => {
-    // 1. Injecter directement le cookie de rafraîchissement dans le navigateur de test
-    // (Assurez-vous que la valeur correspond à ce que votre serveur attend, ou simulez une session)
-    await context.addCookies([
-      {
-        name: 'refresh_token',
-        value: 'votre_token_de_test_valide_ou_mock',
-        domain: 'localhost',
-        path: '/',
-        httpOnly: true,
-        secure: false, // Doit être false en HTTP local
-        sameSite: 'Lax',
-      }
-    ])
+test.describe('Parcours de gestion des leads et Sécurité', () => {
 
-    // 2. Aller sur l'accueil ou directement sur le dashboard
-    await page.goto('/leads/dashboard')
+  test("Redirection des utilisateurs non authentifiés vers la page de connexion", async ({ page }) => {
+    // Tenter d'accéder à la page de création de lead sans être connecté
+    await page.goto('/leads/new')
+    
+    // Doit être redirigé vers la page d'authentification
+    await expect(page).toHaveURL('/')
+  })
 
-    // 3. Vérifier l'arrivée sur le tableau de bord
-    await expect(page.locator('h1')).toContainText('Tableau de bord - Apporteur')
+  test("Inscription, connexion et création d'un nouveau lead", async ({ page }) => {
+    const uniqueEmail = `test.e2e.${Date.now()}@webdevoo.com`
+    const password = 'Password123!'
 
-    // 4. Cliquer sur le bouton de création de lead
-    await page.click('a:has-text("+ Nouveau Lead")')
+    await page.goto('/')
+
+    // -------------------------------------------------------------------------
+    // 1. Inscription
+    // -------------------------------------------------------------------------
+    await page.getByRole('button', { name: 'Inscription' }).click()
+
+    const firstNameInput = page.locator('input[placeholder="Prénom"], input[name="firstName"]')
+    await expect(firstNameInput).toBeVisible({ timeout: 10000 })
+
+    await firstNameInput.fill('Jean')
+    await page.fill('input[placeholder="Nom"], input[name="lastName"]', 'Dupont')
+    await page.fill('input[placeholder="Téléphone"], input[name="phone"]', '0612345678')
+    await page.fill('input[type="email"], input[name="email"]', uniqueEmail)
+    await page.fill('input[type="password"], input[name="password"]', password)
+
+    const registerResponsePromise = page.waitForResponse(
+      (response) => response.url().includes('/api/auth/register') && [200, 201].includes(response.status())
+    )
+
+    await page.getByRole('button', { name: "S'inscrire" }).click()
+    await registerResponsePromise
+
+    // -------------------------------------------------------------------------
+    // 2. Bascule vers la Connexion & Authentification
+    // -------------------------------------------------------------------------
+    await page.getByRole('button', { name: 'Connexion' }).click()
+
+    const loginEmailInput = page.locator('input[type="email"], input[name="email"]')
+    await expect(loginEmailInput).toBeVisible({ timeout: 10000 })
+
+    await loginEmailInput.fill(uniqueEmail)
+    await page.fill('input[type="password"], input[name="password"]', password)
+
+    const loginResponsePromise = page.waitForResponse(
+      (response) => response.url().includes('/api/auth/login') && [200, 201].includes(response.status())
+    )
+
+    await page.getByRole('button', { name: 'Se connecter' }).click()
+    await loginResponsePromise
+
+    // -------------------------------------------------------------------------
+    // 3. Redirection & Dashboard
+    // -------------------------------------------------------------------------
+    await page.waitForURL('**/leads/dashboard')
+    await expect(page.getByRole('heading', { name: 'Tableau de bord' })).toBeVisible()
+
+    // -------------------------------------------------------------------------
+    // 4. Création d'un nouveau lead (Route : /leads/new)
+    // -------------------------------------------------------------------------
+    await page.click('a[href="/leads/new"]')
     await page.waitForURL('**/leads/new')
 
-    // 5. Remplir le formulaire de création de lead
-    await page.fill('input[name="companyName"], #companyName', 'Société Test E2E')
-    await page.fill('input[name="contactFirstName"], #contactFirstName', 'Alice')
-    await page.fill('input[name="contactLastName"], #contactLastName', 'Martin')
-    await page.fill('input[name="contactEmail"], #contactEmail', 'alice.martin@test.com')
-    await page.fill('input[name="missionTitle"], #missionTitle', 'Développement application mobile')
-    await page.fill('input[name="missionStartDate"], #missionStartDate', '2026-09-01')
+    await page.fill('#companyName', 'Société Test E2E')
+    await page.fill('#clientSiret', '12345678901234')
+    await page.fill('#contactFirstName', 'Alice')
+    await page.fill('#contactLastName', 'Martin')
+    await page.fill('#clientEmail', 'alice.martin@test.com')
+    await page.fill('#clientPhone', '0612345678')
+    await page.fill('#missionTitle', 'Développement application mobile')
+    await page.fill('#missionStartDate', '2026-09-01')
 
-    // 6. Soumettre le formulaire
-    await page.click('form button[type="submit"]')
+    const createLeadPromise = page.waitForResponse(
+      (response) => response.url().includes('/api/leads') && response.request().method() === 'POST' && [200, 201].includes(response.status())
+    )
 
-    // 7. Vérifier le retour sur le dashboard et la présence du lead
+    await page.click('button[type="submit"]')
+    await createLeadPromise
+
+    // -------------------------------------------------------------------------
+    // 5. Validation finale sur le dashboard
+    // -------------------------------------------------------------------------
     await page.waitForURL('**/leads/dashboard')
-    await expect(page.locator('text=Société Test E2E')).toBeVisible()
+    await expect(page.locator('text=Développement application mobile')).toBeVisible({ timeout: 15000 })
+  })
+
+  test("Déconnexion de l'utilisateur depuis le dashboard", async ({ page }) => {
+    const uniqueEmail = `test.logout.${Date.now()}@webdevoo.com`
+    const password = 'Password123!'
+
+    // 1. Inscription rapide & Connexion pour arriver sur le dashboard
+    await page.goto('/')
+    await page.getByRole('button', { name: 'Inscription' }).click()
+    
+    const firstNameInput = page.locator('input[placeholder="Prénom"], input[name="firstName"]')
+    await expect(firstNameInput).toBeVisible({ timeout: 10000 })
+
+    await firstNameInput.fill('Paul')
+    await page.fill('input[placeholder="Nom"], input[name="lastName"]', 'Emploi')
+    await page.fill('input[placeholder="Téléphone"], input[name="phone"]', '0612345678')
+    await page.fill('input[type="email"], input[name="email"]', uniqueEmail)
+    await page.fill('input[type="password"], input[name="password"]', password)
+
+    const registerResponsePromise = page.waitForResponse(
+      (response) => response.url().includes('/api/auth/register') && [200, 201].includes(response.status())
+    )
+    await page.getByRole('button', { name: "S'inscrire" }).click()
+    await registerResponsePromise
+
+    await page.getByRole('button', { name: 'Connexion' }).click()
+    
+    const loginEmailInput = page.locator('input[type="email"], input[name="email"]')
+    await expect(loginEmailInput).toBeVisible({ timeout: 10000 })
+
+    await loginEmailInput.fill(uniqueEmail)
+    await page.fill('input[type="password"], input[name="password"]', password)
+
+    const loginResponsePromise = page.waitForResponse(
+      (response) => response.url().includes('/api/auth/login') && [200, 201].includes(response.status())
+    )
+    await page.getByRole('button', { name: 'Se connecter' }).click()
+    await loginResponsePromise
+
+    // 2. Attente de l'arrivée sur le dashboard
+    await page.waitForURL('**/leads/dashboard')
+    await expect(page.getByRole('heading', { name: 'Tableau de bord' })).toBeVisible()
+
+    // 3. Clic sur le bouton de déconnexion
+    await page.locator('#main-navigation button.btn-logout').click()
+
+    // 4. Vérification du retour sur la page d'accueil
+    await page.waitForURL('/')
+    await expect(page.getByRole('button', { name: 'Se connecter' })).toBeVisible()
   })
 })

@@ -7,16 +7,16 @@ export default defineEventHandler(async (event) => {
   const user = protectRoute(event)
 
   const body = await readBody(event)
-  const { 
-    companyName, 
-    contactFirstName, 
-    contactLastName, 
-    clientEmail, 
-    clientPhone, 
-    missionTitle, 
-    missionStartDate, 
-    durationDays, 
-    isIndefiniteDuration, 
+  const {
+    companyName,
+    contactFirstName,
+    contactLastName,
+    clientEmail,
+    clientPhone,
+    missionTitle,
+    missionStartDate,
+    durationDays,
+    isIndefiniteDuration,
     commissionRate,
     clientSiret
   } = body
@@ -29,32 +29,39 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
-    const [newLead] = await db.insert(leads).values({
+
+    const clientSiretClean = clientSiret ? clientSiret.replace(/\D/g, "") : null;
+    const clientPhoneClean = clientPhone ? clientPhone.replace(/^(?:\+33|0033)/g, "0").replace(/\D/g, "") : null;
+
+    const [result] = await db.insert(leads).values({
       referrerId: user.userId,
       companyName,
       contactFirstName,
       contactLastName,
       clientEmail,
-      clientPhone,
+      clientPhone: clientPhoneClean,
       missionTitle,
-      missionStartDate,
-      clientSiret: clientSiret || null,
+      missionStartDate: new Date(missionStartDate),
+      clientSiret: clientSiretClean,
       durationDays: durationDays ? Number(durationDays) : null,
       isIndefiniteDuration: Boolean(isIndefiniteDuration),
       commissionRate: commissionRate ? String(commissionRate) : '10.00',
       status: 'pending' as LeadStatus,
-    }).$returningId()
+    })
+
+    const insertedId = Number(result.insertId)
 
     return {
       success: true,
       message: 'Lead créé avec succès.',
-      leadId: newLead,
+      leadId: insertedId,
     }
   } catch (error: any) {
-    console.error('Erreur technique (leads.post):', error)
+    console.error('Erreur SQL détaillée (leads.post):', error)
+
     throw createError({
       statusCode: 500,
-      message: "Erreur lors de la création du lead en base de données.",
+      message: error?.sqlMessage || error?.message || "Erreur lors de la création du lead en base de données.",
     })
   }
 })

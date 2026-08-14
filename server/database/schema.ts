@@ -43,7 +43,7 @@ export const leads = mysqlTable('leads', {
   clientEmail: varchar('client_email', { length: 255 }).notNull(),
   clientPhone: varchar('client_phone', { length: 20 }).notNull(),
   missionTitle: varchar('mission_title', { length: 255 }).notNull(),
-  missionStartDate: date('mission_start_date').notNull(),
+  missionStartDate: date('mission_start_date', { mode: 'date' }).notNull(),
   durationDays: int('duration_days'),
   isIndefiniteDuration: boolean('is_indefinite_duration').notNull().default(false),
   commissionRate: decimal('commission_rate', { precision: 5, scale: 2 }).notNull().default('10.00'),
