@@ -57,11 +57,22 @@ const handleSubmit = async () => {
     <div class="lead-form-wrapper">
       <header class="form-header">
         <h1>+ Créer un nouveau Lead</h1>
-        <NuxtLink to="/leads/dashboard" class="btn-secondary">Retour au tableau de bord</NuxtLink>
+        <NuxtLink
+          to="/leads/dashboard"
+          class="btn-secondary"
+        >
+          Retour au tableau de bord
+        </NuxtLink>
       </header>
 
-      <form @submit.prevent="handleSubmit" class="lead-form">
-        <div v-if="errorMessage" class="error-message">
+      <form
+        class="lead-form"
+        @submit.prevent="handleSubmit"
+      >
+        <div
+          v-if="errorMessage"
+          class="error-message"
+        >
           {{ errorMessage }}
         </div>
 
@@ -69,11 +80,22 @@ const handleSubmit = async () => {
           <legend>Informations de la Société</legend>
           <div class="form-group">
             <label for="companyName">Nom de la société *</label>
-            <input id="companyName" v-model="form.companyName" type="text" required placeholder="Ex: Acme Corp" />
+            <input
+              id="companyName"
+              v-model="form.companyName"
+              type="text"
+              required
+              placeholder="Ex: Acme Corp"
+            >
           </div>
           <div class="form-group">
             <label for="clientSiret">SIRET du client</label>
-            <input id="clientSiret" v-model="form.clientSiret" type="text" placeholder="14 chiffres" />
+            <input
+              id="clientSiret"
+              v-model="form.clientSiret"
+              type="text"
+              placeholder="14 chiffres"
+            >
           </div>
         </fieldset>
 
@@ -82,21 +104,42 @@ const handleSubmit = async () => {
           <div class="form-row">
             <div class="form-group">
               <label for="contactFirstName">Prénom</label>
-              <input id="contactFirstName" v-model="form.contactFirstName" type="text" placeholder="Jean" />
+              <input
+                id="contactFirstName"
+                v-model="form.contactFirstName"
+                type="text"
+                placeholder="Jean"
+              >
             </div>
             <div class="form-group">
               <label for="contactLastName">Nom</label>
-              <input id="contactLastName" v-model="form.contactLastName" type="text" placeholder="Dupont" />
+              <input
+                id="contactLastName"
+                v-model="form.contactLastName"
+                type="text"
+                placeholder="Dupont"
+              >
             </div>
           </div>
           <div class="form-row">
             <div class="form-group">
               <label for="clientEmail">Email *</label>
-              <input id="clientEmail" v-model="form.clientEmail" type="email" required placeholder="jean.dupont@client.com" />
+              <input
+                id="clientEmail"
+                v-model="form.clientEmail"
+                type="email"
+                required
+                placeholder="jean.dupont@client.com"
+              >
             </div>
             <div class="form-group">
               <label for="clientPhone">Téléphone</label>
-              <input id="clientPhone" v-model="form.clientPhone" type="tel" placeholder="06 12 34 56 78" />
+              <input
+                id="clientPhone"
+                v-model="form.clientPhone"
+                type="tel"
+                placeholder="06 12 34 56 78"
+              >
             </div>
           </div>
         </fieldset>
@@ -105,32 +148,62 @@ const handleSubmit = async () => {
           <legend>Détails de la mission</legend>
           <div class="form-group">
             <label for="missionTitle">Intitulé de la mission *</label>
-            <input id="missionTitle" v-model="form.missionTitle" type="text" required placeholder="Ex: Refonte application web Nuxt" />
+            <input
+              id="missionTitle"
+              v-model="form.missionTitle"
+              type="text"
+              required
+              placeholder="Ex: Refonte application web Nuxt"
+            >
           </div>
           <div class="form-row">
             <div class="form-group">
               <label for="missionStartDate">Date de début souhaitée</label>
-              <input id="missionStartDate" v-model="form.missionStartDate" type="date" />
+              <input
+                id="missionStartDate"
+                v-model="form.missionStartDate"
+                type="date"
+              >
             </div>
             <div class="form-group">
               <label for="commissionRate">Taux de commission (%)</label>
-              <input id="commissionRate" v-model="form.commissionRate" type="text" placeholder="10" />
+              <input
+                id="commissionRate"
+                v-model="form.commissionRate"
+                type="text"
+                placeholder="10"
+              >
             </div>
           </div>
           <div class="form-group checkbox-group">
             <label>
-              <input type="checkbox" v-model="form.isIndefiniteDuration" />
+              <input
+                v-model="form.isIndefiniteDuration"
+                type="checkbox"
+              >
               Durée indéterminée
             </label>
           </div>
-          <div class="form-group" v-if="!form.isIndefiniteDuration">
+          <div
+            v-if="!form.isIndefiniteDuration"
+            class="form-group"
+          >
             <label for="durationDays">Durée estimée (en jours)</label>
-            <input id="durationDays" v-model.number="form.durationDays" type="number" placeholder="30" />
+            <input
+              id="durationDays"
+              v-model.number="form.durationDays"
+              type="number"
+              placeholder="30"
+            >
           </div>
         </fieldset>
 
         <div class="form-actions">
-          <button type="submit" class="btn-primary" :disabled="loading">
+          <button
+            type="submit"
+            class="btn-primary"
+            :disabled="loading"
+          >
             {{ loading ? 'Enregistrement...' : 'Enregistrer le lead' }}
           </button>
         </div>

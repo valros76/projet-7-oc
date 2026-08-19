@@ -135,51 +135,102 @@ onMounted(() => {
       <header class="form-header">
         <div>
           <h1>Détail du Lead</h1>
-          <NuxtLink to="/leads/dashboard" class="btn-secondary">← Retour au tableau de bord</NuxtLink>
+          <NuxtLink
+            to="/leads/dashboard"
+            class="btn-secondary"
+          >
+            ← Retour au tableau de bord
+          </NuxtLink>
         </div>
-        <div v-if="!loading" class="header-actions">
-          <span v-if="form.status" class="badge" :class="getStatusBadge(form.status).class">
+        <div
+          v-if="!loading"
+          class="header-actions"
+        >
+          <span
+            v-if="form.status"
+            class="badge"
+            :class="getStatusBadge(form.status).class"
+          >
             {{ getStatusBadge(form.status).label }}
           </span>
           <button 
             v-if="isAdmin" 
-            @click="handleDelete" 
             class="btn-danger" 
-            :disabled="deleting"
+            :disabled="deleting" 
+            @click="handleDelete"
           >
             {{ deleting ? 'Suppression...' : 'Supprimer' }}
           </button>
         </div>
       </header>
 
-      <div v-if="errorMessage" class="error-message">{{ errorMessage }}</div>
-      <div v-if="successMessage" class="success-message">{{ successMessage }}</div>
+      <div
+        v-if="errorMessage"
+        class="error-message"
+      >
+        {{ errorMessage }}
+      </div>
+      <div
+        v-if="successMessage"
+        class="success-message"
+      >
+        {{ successMessage }}
+      </div>
 
-      <div v-if="!loading && !isEditableByApporteur" class="warning-banner">
+      <div
+        v-if="!loading && !isEditableByApporteur"
+        class="warning-banner"
+      >
         ⚠️ Ce lead est en attente ou refusé. Il ne peut être modifié que lorsqu'il aura été accepté par un administrateur.
       </div>
 
-      <div v-if="loading" class="loading-state">
+      <div
+        v-if="loading"
+        class="loading-state"
+      >
         Chargement des détails...
       </div>
 
-      <form v-else @submit.prevent="handleUpdate" class="lead-form">
-        
-        <fieldset v-if="isAdmin" class="admin-fieldset">
+      <form
+        v-else
+        class="lead-form"
+        @submit.prevent="handleUpdate"
+      >
+        <fieldset
+          v-if="isAdmin"
+          class="admin-fieldset"
+        >
           <legend>Administration</legend>
           <div class="form-row">
             <div class="form-group">
               <label for="status">Statut du lead</label>
-              <select id="status" v-model="form.status" class="form-control">
-                <option value="pending">En attente</option>
-                <option value="accepted">Validé (Accepté)</option>
-                <option value="refused">Refusé</option>
-                <option value="paid">Payé</option>
+              <select
+                id="status"
+                v-model="form.status"
+                class="form-control"
+              >
+                <option value="pending">
+                  En attente
+                </option>
+                <option value="accepted">
+                  Validé (Accepté)
+                </option>
+                <option value="refused">
+                  Refusé
+                </option>
+                <option value="paid">
+                  Payé
+                </option>
               </select>
             </div>
             <div class="form-group">
               <label for="commissionRate">Taux de commission (%)</label>
-              <input id="commissionRate" v-model="form.commissionRate" type="text" placeholder="10" />
+              <input
+                id="commissionRate"
+                v-model="form.commissionRate"
+                type="text"
+                placeholder="10"
+              >
             </div>
           </div>
         </fieldset>
@@ -188,11 +239,21 @@ onMounted(() => {
           <legend>Informations de la Société</legend>
           <div class="form-group">
             <label for="companyName">Nom de la société *</label>
-            <input id="companyName" v-model="form.companyName" type="text" required />
+            <input
+              id="companyName"
+              v-model="form.companyName"
+              type="text"
+              required
+            >
           </div>
           <div class="form-group">
             <label for="clientSiret">SIRET du client</label>
-            <input id="clientSiret" v-model="form.clientSiret" type="text" placeholder="14 chiffres" />
+            <input
+              id="clientSiret"
+              v-model="form.clientSiret"
+              type="text"
+              placeholder="14 chiffres"
+            >
           </div>
         </fieldset>
 
@@ -201,21 +262,38 @@ onMounted(() => {
           <div class="form-row">
             <div class="form-group">
               <label for="contactFirstName">Prénom</label>
-              <input id="contactFirstName" v-model="form.contactFirstName" type="text" />
+              <input
+                id="contactFirstName"
+                v-model="form.contactFirstName"
+                type="text"
+              >
             </div>
             <div class="form-group">
               <label for="contactLastName">Nom</label>
-              <input id="contactLastName" v-model="form.contactLastName" type="text" />
+              <input
+                id="contactLastName"
+                v-model="form.contactLastName"
+                type="text"
+              >
             </div>
           </div>
           <div class="form-row">
             <div class="form-group">
               <label for="clientEmail">Email *</label>
-              <input id="clientEmail" v-model="form.clientEmail" type="email" required />
+              <input
+                id="clientEmail"
+                v-model="form.clientEmail"
+                type="email"
+                required
+              >
             </div>
             <div class="form-group">
               <label for="clientPhone">Téléphone</label>
-              <input id="clientPhone" v-model="form.clientPhone" type="tel" />
+              <input
+                id="clientPhone"
+                v-model="form.clientPhone"
+                type="tel"
+              >
             </div>
           </div>
         </fieldset>
@@ -224,32 +302,66 @@ onMounted(() => {
           <legend>Détails de la mission</legend>
           <div class="form-group">
             <label for="missionTitle">Intitulé de la mission *</label>
-            <input id="missionTitle" v-model="form.missionTitle" type="text" required />
+            <input
+              id="missionTitle"
+              v-model="form.missionTitle"
+              type="text"
+              required
+            >
           </div>
           <div class="form-row">
             <div class="form-group">
               <label for="missionStartDate">Date de début souhaitée</label>
-              <input id="missionStartDate" v-model="form.missionStartDate" type="date" />
+              <input
+                id="missionStartDate"
+                v-model="form.missionStartDate"
+                type="date"
+              >
             </div>
-            <div class="form-group" v-if="!isAdmin">
+            <div
+              v-if="!isAdmin"
+              class="form-group"
+            >
               <label>Taux de commission (%) [Verrouillé]</label>
-              <input :value="form.commissionRate + '%'" type="text" disabled class="disabled-input" />
+              <input
+                :value="form.commissionRate + '%'"
+                type="text"
+                disabled
+                class="disabled-input"
+              >
             </div>
           </div>
           <div class="form-group checkbox-group">
             <label>
-              <input type="checkbox" v-model="form.isIndefiniteDuration" />
+              <input
+                v-model="form.isIndefiniteDuration"
+                type="checkbox"
+              >
               Durée indéterminée
             </label>
           </div>
-          <div class="form-group" v-if="!form.isIndefiniteDuration">
+          <div
+            v-if="!form.isIndefiniteDuration"
+            class="form-group"
+          >
             <label for="durationDays">Durée estimée (en jours)</label>
-            <input id="durationDays" v-model.number="form.durationDays" type="number" />
+            <input
+              id="durationDays"
+              v-model.number="form.durationDays"
+              type="number"
+            >
           </div>
         </fieldset>
 
-        <div class="form-actions" v-if="isEditableByApporteur">
-          <button type="submit" class="btn-primary" :disabled="saving">
+        <div
+          v-if="isEditableByApporteur"
+          class="form-actions"
+        >
+          <button
+            type="submit"
+            class="btn-primary"
+            :disabled="saving"
+          >
             {{ saving ? 'Enregistrement...' : 'Enregistrer les modifications' }}
           </button>
         </div>

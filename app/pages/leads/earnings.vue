@@ -56,10 +56,17 @@ onMounted(() => {
       <header class="earnings-header">
         <div>
           <h1>Mes Performances & Suivi</h1>
-          <p class="subtitle">Suivez l'état d'avancement de vos leads et de vos validations</p>
+          <p class="subtitle">
+            Suivez l'état d'avancement de vos leads et de vos validations
+          </p>
         </div>
         <div class="header-actions">
-          <NuxtLink to="/leads/dashboard" class="btn-secondary">← Retour au tableau de bord</NuxtLink>
+          <NuxtLink
+            to="/leads/dashboard"
+            class="btn-secondary"
+          >
+            ← Retour au tableau de bord
+          </NuxtLink>
           <Logout />
         </div>
       </header>
@@ -83,11 +90,24 @@ onMounted(() => {
         </div>
       </div>
 
-      <div v-if="errorMessage" class="error-message">{{ errorMessage }}</div>
+      <div
+        v-if="errorMessage"
+        class="error-message"
+      >
+        {{ errorMessage }}
+      </div>
 
-      <div v-if="loading" class="loading-state">Chargement de vos données...</div>
+      <div
+        v-if="loading"
+        class="loading-state"
+      >
+        Chargement de vos données...
+      </div>
 
-      <div v-else class="table-container">
+      <div
+        v-else
+        class="table-container"
+      >
         <table class="earnings-table">
           <thead>
             <tr>
@@ -98,18 +118,38 @@ onMounted(() => {
             </tr>
           </thead>
           <tbody>
-            <tr v-for="lead in leadsList" :key="lead.id">
-              <td data-label="Société" class="font-bold">{{ lead.companyName }}</td>
-              <td data-label="Mission">{{ lead.missionTitle }}</td>
-              <td data-label="Date">{{ formatDate(lead.createdAt) }}</td>
+            <tr
+              v-for="lead in leadsList"
+              :key="lead.id"
+            >
+              <td
+                data-label="Société"
+                class="font-bold"
+              >
+                {{ lead.companyName }}
+              </td>
+              <td data-label="Mission">
+                {{ lead.missionTitle }}
+              </td>
+              <td data-label="Date">
+                {{ formatDate(lead.createdAt) }}
+              </td>
               <td data-label="Statut">
-                <span class="badge" :class="getStatusBadge(lead.status).class">
+                <span
+                  class="badge"
+                  :class="getStatusBadge(lead.status).class"
+                >
                   {{ getStatusBadge(lead.status).label }}
                 </span>
               </td>
             </tr>
             <tr v-if="leadsList.length === 0">
-              <td colspan="4" class="empty-state">Aucun lead enregistré pour le moment.</td>
+              <td
+                colspan="4"
+                class="empty-state"
+              >
+                Aucun lead enregistré pour le moment.
+              </td>
             </tr>
           </tbody>
         </table>

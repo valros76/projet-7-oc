@@ -11,7 +11,7 @@ definePageMeta({
   middleware: 'auth'
 })
 
-const { data: leadsData, pending: loading, refresh } = await useFetch<any>('/api/leads', {
+const { data: leadsData, pending: loading } = await useFetch<any>('/api/leads', {
   $fetch: useNuxtApp().$api
 })
 
@@ -85,45 +85,49 @@ const closeModal = () => {
 </script>
 
 <template>
-    <div class="dashboard-container">
-      <LeadKpiGrid v-bind="kpis" />
+  <div class="dashboard-container">
+    <LeadKpiGrid v-bind="kpis" />
 
-      <LeadFilters 
-        v-model:searchQuery="searchQuery"
-        v-model:selectedStatus="selectedStatus"
-      />
+    <LeadFilters 
+      v-model:search-query="searchQuery"
+      v-model:selected-status="selectedStatus"
+    />
 
-      <LeadTable 
-        :leadsList="paginatedLeads" 
-        :loading="loading"
-        @row-click="openLeadDetails"
-      />
+    <LeadTable 
+      :leads-list="paginatedLeads" 
+      :loading="loading"
+      @row-click="openLeadDetails"
+    />
 
-      <Pagination 
-        v-if="totalPages > 1"
-        v-model:currentPage="currentPage"
-        :totalPages="totalPages"
-      />
+    <Pagination 
+      v-if="totalPages > 1"
+      v-model:current-page="currentPage"
+      :total-pages="totalPages"
+    />
 
-      <LeadModal 
-        :isOpen="isModalOpen"
-        :lead="selectedLead"
-        @close="closeModal"
-      >
-        <template #footer>
-          <button type="button" class="btn-primary" @click="showToast('Action effectuée avec succès !'); closeModal()">
-            Valider les modifications
-          </button>
-        </template>
-      </LeadModal>
+    <LeadModal 
+      :is-open="isModalOpen"
+      :lead="selectedLead"
+      @close="closeModal"
+    >
+      <template #footer>
+        <button
+          type="button"
+          class="btn-primary"
+          @click="showToast('Action effectuée avec succès !'); closeModal()"
+        >
+          Valider les modifications
+        </button>
+      </template>
+    </LeadModal>
 
-      <ToastNotification 
-        :show="toast.show"
-        :message="toast.message"
-        :type="toast.type"
-        @close="toast.show = false"
-      />
-    </div>
+    <ToastNotification 
+      :show="toast.show"
+      :message="toast.message"
+      :type="toast.type"
+      @close="toast.show = false"
+    />
+  </div>
 </template>
 
 <style scoped>

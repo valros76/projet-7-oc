@@ -8,18 +8,25 @@ defineEmits(['update:currentPage'])
 </script>
 
 <template>
-  <nav class="pagination-nav" role="navigation" aria-label="Pagination des résultats">
+  <nav
+    class="pagination-nav"
+    role="navigation"
+    aria-label="Pagination des résultats"
+  >
     <button 
       type="button" 
       class="page-btn" 
       :disabled="currentPage <= 1"
-      @click="$emit('update:currentPage', currentPage - 1)"
       aria-label="Aller à la page précédente"
+      @click="$emit('update:currentPage', currentPage - 1)"
     >
       Précédent
     </button>
 
-    <span class="page-info" aria-current="page">
+    <span
+      class="page-info"
+      aria-current="page"
+    >
       Page <strong>{{ currentPage }}</strong> sur <strong>{{ totalPages }}</strong>
     </span>
 
@@ -27,8 +34,8 @@ defineEmits(['update:currentPage'])
       type="button" 
       class="page-btn" 
       :disabled="currentPage >= totalPages"
-      @click="$emit('update:currentPage', currentPage + 1)"
       aria-label="Aller à la page suivante"
+      @click="$emit('update:currentPage', currentPage + 1)"
     >
       Suivant
     </button>

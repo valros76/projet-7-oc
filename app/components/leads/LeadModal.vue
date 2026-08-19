@@ -24,7 +24,11 @@ onUnmounted(() => window.removeEventListener('keydown', handleKeyDown))
 </script>
 
 <template>
-  <div v-if="isOpen" class="modal-backdrop" @click.self="handleClose">
+  <div
+    v-if="isOpen"
+    class="modal-backdrop"
+    @click.self="handleClose"
+  >
     <div 
       class="modal-container" 
       role="dialog" 
@@ -32,14 +36,17 @@ onUnmounted(() => window.removeEventListener('keydown', handleKeyDown))
       aria-labelledby="modal-title"
     >
       <header class="modal-header">
-        <h2 id="modal-title" class="modal-title">
+        <h2
+          id="modal-title"
+          class="modal-title"
+        >
           {{ lead ? `Détails du lead - ${lead.companyName}` : 'Nouveau Lead' }}
         </h2>
         <button 
           type="button" 
           class="close-btn" 
-          @click="handleClose"
           aria-label="Fermer la modale"
+          @click="handleClose"
         >
           ✕
         </button>
@@ -47,7 +54,10 @@ onUnmounted(() => window.removeEventListener('keydown', handleKeyDown))
 
       <div class="modal-body">
         <slot>
-          <div v-if="lead" class="lead-details">
+          <div
+            v-if="lead"
+            class="lead-details"
+          >
             <p><strong>Société :</strong> {{ lead.companyName }}</p>
             <p><strong>Mission :</strong> {{ lead.missionTitle }}</p>
             <p><strong>Date de soumission :</strong> {{ lead.createdAt }}</p>
@@ -58,7 +68,13 @@ onUnmounted(() => window.removeEventListener('keydown', handleKeyDown))
 
       <footer class="modal-footer">
         <slot name="footer">
-          <button type="button" class="btn-secondary" @click="handleClose">Fermer</button>
+          <button
+            type="button"
+            class="btn-secondary"
+            @click="handleClose"
+          >
+            Fermer
+          </button>
         </slot>
       </footer>
     </div>

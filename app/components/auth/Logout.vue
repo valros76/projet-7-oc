@@ -10,8 +10,8 @@ const handleLogout = async () => {
   <button 
     type="button" 
     class="btn-logout" 
-    @click="handleLogout"
     aria-label="Se déconnecter de l'application"
+    @click="handleLogout"
   >
     Déconnexion
   </button>

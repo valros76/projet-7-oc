@@ -85,20 +85,45 @@ onMounted(() => {
       <header class="admin-header">
         <div>
           <h1>Gestion des utilisateurs</h1>
-          <p class="subtitle">Administrez les comptes et les rôles de la plateforme</p>
+          <p class="subtitle">
+            Administrez les comptes et les rôles de la plateforme
+          </p>
         </div>
         <div class="header-actions">
-          <NuxtLink to="/leads/dashboard" class="btn-secondary">← Retour au tableau de bord</NuxtLink>
+          <NuxtLink
+            to="/leads/dashboard"
+            class="btn-secondary"
+          >
+            ← Retour au tableau de bord
+          </NuxtLink>
           <Logout />
         </div>
       </header>
 
-      <div v-if="errorMessage" class="error-message">{{ errorMessage }}</div>
-      <div v-if="successMessage" class="success-message">{{ successMessage }}</div>
+      <div
+        v-if="errorMessage"
+        class="error-message"
+      >
+        {{ errorMessage }}
+      </div>
+      <div
+        v-if="successMessage"
+        class="success-message"
+      >
+        {{ successMessage }}
+      </div>
 
-      <div v-if="loading" class="loading-state">Chargement des utilisateurs...</div>
+      <div
+        v-if="loading"
+        class="loading-state"
+      >
+        Chargement des utilisateurs...
+      </div>
 
-      <div v-else class="table-container">
+      <div
+        v-else
+        class="table-container"
+      >
         <table class="admin-table">
           <thead>
             <tr>
@@ -111,31 +136,50 @@ onMounted(() => {
             </tr>
           </thead>
           <tbody>
-            <tr v-for="user in usersList" :key="user.id">
-              <td data-label="Utilisateur" class="font-bold">
+            <tr
+              v-for="user in usersList"
+              :key="user.id"
+            >
+              <td
+                data-label="Utilisateur"
+                class="font-bold"
+              >
                 {{ user.firstName }} {{ user.lastName }}
               </td>
-              <td data-label="Email">{{ user.email }}</td>
-              <td data-label="Téléphone">{{ user.phone || '-' }}</td>
+              <td data-label="Email">
+                {{ user.email }}
+              </td>
+              <td data-label="Téléphone">
+                {{ user.phone || '-' }}
+              </td>
               <td data-label="Rôle">
                 <span :class="['badge', user.role === 'admin' ? 'badge-admin' : 'badge-referrer']">
                   {{ user.role === 'admin' ? 'Administrateur' : 'Apporteur' }}
                 </span>
               </td>
-              <td data-label="Inscrit le">{{ formatDate(user.createdAt) }}</td>
-              <td data-label="Actions" class="actions-cell">
+              <td data-label="Inscrit le">
+                {{ formatDate(user.createdAt) }}
+              </td>
+              <td
+                data-label="Actions"
+                class="actions-cell"
+              >
                 <select 
                   :value="user.role" 
-                  @change="(e: any) => updateUserRole(user.id, e.target.value)"
                   class="role-select"
+                  @change="(e: any) => updateUserRole(user.id, e.target.value)"
                 >
-                  <option value="referrer">Apporteur</option>
-                  <option value="admin">Administrateur</option>
+                  <option value="referrer">
+                    Apporteur
+                  </option>
+                  <option value="admin">
+                    Administrateur
+                  </option>
                 </select>
                 <button 
-                  @click="deleteUser(user.id, `${user.firstName} ${user.lastName}`)" 
-                  class="btn-delete"
+                  class="btn-delete" 
                   title="Supprimer l'utilisateur"
+                  @click="deleteUser(user.id, `${user.firstName} ${user.lastName}`)"
                 >
                   🗑️
                 </button>

@@ -22,19 +22,27 @@ const closeMenu = () => {
 </script>
 
 <template>
-  <header class="main-head" role="banner">
+  <header
+    class="main-head"
+    role="banner"
+  >
     <div class="logo-header">
-      <h1 class="main-head-title">Tableau de bord</h1>
+      <h1 class="main-head-title">
+        Tableau de bord
+      </h1>
     </div>
 
     <button 
       class="nav-btn" 
-      @click="toggleMenu"
       :aria-expanded="isMenuOpen"
       aria-controls="main-navigation"
       :aria-label="isMenuOpen ? 'Fermer le menu de navigation' : 'Ouvrir le menu de navigation'"
+      @click="toggleMenu"
     >
-      <span class="nav-icon" aria-hidden="true">{{ isMenuOpen ? '✕' : '☰' }}</span>
+      <span
+        class="nav-icon"
+        aria-hidden="true"
+      >{{ isMenuOpen ? '✕' : '☰' }}</span>
     </button>
 
     <nav 
@@ -45,14 +53,39 @@ const closeMenu = () => {
       aria-label="Navigation principale"
     >
       <template v-if="user">
-        <NuxtLink to="/leads/dashboard" class="main-menu-links" @click="closeMenu">Dashboard</NuxtLink>
-        <NuxtLink to="/leads/new" class="main-menu-links" @click="closeMenu">Ajouter un lead</NuxtLink>
-        <NuxtLink v-if="isAdmin" to="/admin/users" class="main-menu-links" @click="closeMenu">Users</NuxtLink>
+        <NuxtLink
+          to="/leads/dashboard"
+          class="main-menu-links"
+          @click="closeMenu"
+        >
+          Dashboard
+        </NuxtLink>
+        <NuxtLink
+          to="/leads/new"
+          class="main-menu-links"
+          @click="closeMenu"
+        >
+          Ajouter un lead
+        </NuxtLink>
+        <NuxtLink
+          v-if="isAdmin"
+          to="/admin/users"
+          class="main-menu-links"
+          @click="closeMenu"
+        >
+          Users
+        </NuxtLink>
         <Logout @click="closeMenu" />
       </template>
 
       <template v-else>
-        <NuxtLink to="/" class="main-menu-links" @click="closeMenu">Connexion</NuxtLink>
+        <NuxtLink
+          to="/"
+          class="main-menu-links"
+          @click="closeMenu"
+        >
+          Connexion
+        </NuxtLink>
       </template>
     </nav>
   </header>
