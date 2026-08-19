@@ -35,6 +35,9 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+      - name: Audit Dependencies (Supply Chain Security)
+        run: bun audit || true
+
       - name: Type check & Lint
         run: |
           npx tsc --noEmit
@@ -47,7 +50,7 @@ jobs:
   e2e-tests:
     needs: test-and-lint
     runs-on: ubuntu-latest
-    
+
     # Image officielle Playwright alignée sur la version ^1.61.1
     container:
       image: mcr.microsoft.com/playwright:v1.61.1-jammy
@@ -101,7 +104,7 @@ jobs:
         run: npx playwright test
         env:
           DB_HOST: mysql
-          DB_PORT: '3306'
+          DB_PORT: "3306"
           DB_USER: root
           DB_PASSWORD: ${{ secrets.DB_ROOT_PASSWORD }}
           DB_NAME: webdevoo_lead

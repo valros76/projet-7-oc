@@ -14,24 +14,48 @@ export async function verifyPassword(password: string, hash: string): Promise<bo
   return bcrypt.compare(password, hash)
 }
 
-// Récupération sécurisée du secret Access Token (compatible tests unitaires Vitest)
+// Récupération sécurisée et validation du secret Access Token
 const getJwtSecret = () => {
+  let secret: string | undefined
   try {
     const config = useRuntimeConfig()
-    return config.jwtAccessSecret || config.jwtSecret || process.env.JWT_ACCESS_SECRET || process.env.JWT_SECRET || 'fallback-access-secret-key'
+    secret = config.jwtAccessSecret || config.jwtSecret || process.env.JWT_ACCESS_SECRET || process.env.JWT_SECRET
   } catch {
-    return process.env.JWT_ACCESS_SECRET || process.env.JWT_SECRET || 'fallback-access-secret-key'
+    secret = process.env.JWT_ACCESS_SECRET || process.env.JWT_SECRET
   }
+
+  const defaultSecret = 'fallback-access-secret-key'
+
+  if (!secret || secret === defaultSecret) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error("ERREUR CRITIQUE DE SÉCURITÉ : Aucune clé JWT Access robuste n'est définie en production !")
+    }
+    return defaultSecret
+  }
+
+  return secret
 }
 
-// Récupération sécurisée du secret Refresh Token (compatible tests unitaires Vitest)
+// Récupération sécurisée et validation du secret Refresh Token
 const getRefreshSecret = () => {
+  let secret: string | undefined
   try {
     const config = useRuntimeConfig()
-    return config.jwtRefreshSecret || process.env.JWT_REFRESH_SECRET || 'fallback-refresh-secret-key'
+    secret = config.jwtRefreshSecret || process.env.JWT_REFRESH_SECRET
   } catch {
-    return process.env.JWT_REFRESH_SECRET || process.env.JWT_REFRESH_SECRET || 'fallback-refresh-secret-key'
+    secret = process.env.JWT_REFRESH_SECRET
   }
+
+  const defaultSecret = 'fallback-refresh-secret-key'
+
+  if (!secret || secret === defaultSecret) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error("ERREUR CRITIQUE DE SÉCURITÉ : Aucune clé JWT Refresh robuste n'est définie en production !")
+    }
+    return defaultSecret
+  }
+
+  return secret
 }
 
 // Générer un Access Token (courte durée : 15 minutes)
