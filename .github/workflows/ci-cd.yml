@@ -51,9 +51,9 @@ jobs:
     needs: test-and-lint
     runs-on: ubuntu-latest
 
-    # Image officielle Playwright alignée sur la version ^1.61.1
+    # Image officielle Playwright alignée sur la version ^1.62.1
     container:
-      image: mcr.microsoft.com/playwright:v1.61.1-jammy
+      image: mcr.microsoft.com/playwright:v1.62.1-jammy
 
     services:
       mysql:
