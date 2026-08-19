@@ -626,6 +626,13 @@ Selon la configuration actuelle du projet, il peut notamment effectuer :
 7. Build Nuxt ;
 8. Génération des artefacts.
 
+## Gestion CRON pour les tests périodiques automatisés
+
+J'ai implémenté au projet un lancement périodique.
+Github Actions utilisant la timezone UTC, et que je suis sur la timezone Europe/Paris, j'ai donc adapté le cron pour permettre :
+- un lancement à 01h00 du matin l'été et à 00h00 l'hiver, avec la commande `cron: "0 23 * * *"`.
+- un lancement à 12h00 l'été et à 11h00 l'hiver, avec la commande `cron: "0 10 * * *"`.
+
 ---
 
 # 💻 Installation

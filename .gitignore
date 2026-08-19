@@ -26,3 +26,6 @@ logs
 # Playwright test reports and artifacts
 test-results/
 playwright-report/
+
+# Livrables soutenance
+repository-option-a-projet-7-dufrene-valerian.txt
