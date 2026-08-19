@@ -1,63 +1,118 @@
 <template>
   <div class="auth-container">
     <h1>Webdevoo Lead</h1>
-    <p class="subtitle">Espace d'authentification</p>
+    <p class="subtitle">
+      Espace d'authentification
+    </p>
 
-    <div v-if="user" class="card success-card">
+    <div
+      v-if="user"
+      class="card success-card"
+    >
       <h3>Bienvenue, {{ user.firstName }} {{ user.lastName }} !</h3>
       <p><strong>Email :</strong> {{ user.email }}</p>
-      <NuxtLink to="/leads/dashboard" class="btn-valid">
+      <NuxtLink
+        to="/leads/dashboard"
+        class="btn-valid"
+      >
         Accéder au dashboard
       </NuxtLink>
-      <Logout/>
+      <Logout />
     </div>
 
-    <div v-else class="card">
+    <div
+      v-else
+      class="card"
+    >
       <div class="tabs">
         <button 
           type="button"
-          @click="isLoginMode = true" 
-          :class="{ active: isLoginMode }"
+          :class="{ active: isLoginMode }" 
           class="tab-btn"
+          @click="isLoginMode = true"
         >
           Connexion
         </button>
         <button 
           type="button"
-          @click="isLoginMode = false" 
-          :class="{ active: !isLoginMode }"
+          :class="{ active: !isLoginMode }" 
           class="tab-btn"
+          @click="isLoginMode = false"
         >
           Inscription
         </button>
       </div>
 
       <form @submit.prevent="handleSubmit">
-        <div v-if="!isLoginMode" class="row">
-          <input v-model="form.firstName" type="text" placeholder="Prénom" required />
-          <input v-model="form.lastName" type="text" placeholder="Nom" required />
+        <div
+          v-if="!isLoginMode"
+          class="row"
+        >
+          <input
+            v-model="form.firstName"
+            type="text"
+            placeholder="Prénom"
+            required
+          >
+          <input
+            v-model="form.lastName"
+            type="text"
+            placeholder="Nom"
+            required
+          >
         </div>
 
-        <div v-if="!isLoginMode" class="field">
-          <input v-model="form.phone" type="text" placeholder="Téléphone" required />
+        <div
+          v-if="!isLoginMode"
+          class="field"
+        >
+          <input
+            v-model="form.phone"
+            type="text"
+            placeholder="Téléphone"
+            required
+          >
         </div>
 
         <div class="field">
-          <input v-model="form.email" type="email" placeholder="Email" required />
+          <input
+            v-model="form.email"
+            type="email"
+            placeholder="Email"
+            required
+          >
         </div>
 
         <div class="field">
-          <input v-model="form.password" type="password" placeholder="Mot de passe" required />
+          <input
+            v-model="form.password"
+            type="password"
+            placeholder="Mot de passe"
+            required
+          >
         </div>
 
-        <button type="submit" class="btn-primary">
+        <button
+          type="submit"
+          class="btn-primary"
+        >
           {{ isLoginMode ? 'Se connecter' : "S'inscrire" }}
         </button>
       </form>
     </div>
 
-    <p v-if="errorMessage" class="error">{{ errorMessage }}</p>
-    <p v-if="successMessage" class="success">{{ successMessage }}</p>
+    <p
+      v-if="errorMessage"
+      class="error"
+    >
+      {{ errorMessage }}
+    </p>
+    <p
+      v-if="successMessage"
+      class="success"
+    >
+      {{ successMessage }}
+    </p>
   </div>
 </template>
 

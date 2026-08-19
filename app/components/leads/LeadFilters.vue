@@ -14,45 +14,45 @@ defineEmits(['update:searchQuery', 'update:selectedStatus'])
       <input 
         type="text" 
         :value="searchQuery"
+        placeholder="Rechercher par société, mission, contact..."
+        class="search-input" 
         @input="$emit('update:searchQuery', ($event.target as HTMLInputElement).value)"
-        placeholder="Rechercher par société, mission, contact..." 
-        class="search-input"
       >
     </div>
 
     <div class="status-tabs">
       <button 
         type="button"
-        @click="$emit('update:selectedStatus', 'all')"
         :class="['tab-btn', { active: selectedStatus === 'all' }]"
+        @click="$emit('update:selectedStatus', 'all')"
       >
         Tous
       </button>
       <button 
         type="button"
-        @click="$emit('update:selectedStatus', 'pending')"
         :class="['tab-btn', { active: selectedStatus === 'pending' }]"
+        @click="$emit('update:selectedStatus', 'pending')"
       >
         En attente
       </button>
       <button 
         type="button"
-        @click="$emit('update:selectedStatus', 'accepted')"
         :class="['tab-btn', { active: selectedStatus === 'accepted' }]"
+        @click="$emit('update:selectedStatus', 'accepted')"
       >
         Validés
       </button>
       <button 
         type="button"
-        @click="$emit('update:selectedStatus', 'finished')"
         :class="['tab-btn', { active: selectedStatus === 'finished' }]"
+        @click="$emit('update:selectedStatus', 'finished')"
       >
         Payés / Clôturés
       </button>
       <button 
         type="button"
-        @click="$emit('update:selectedStatus', 'refused')"
         :class="['tab-btn', { active: selectedStatus === 'refused' }]"
+        @click="$emit('update:selectedStatus', 'refused')"
       >
         Refusés
       </button>

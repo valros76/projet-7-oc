@@ -36,7 +36,9 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Type check & Lint
-        run: npx tsc --noEmit
+        run: |
+          npx tsc --noEmit
+          bun run lint
 
       - name: Run Unit Tests
         run: bun run test:unit:coverage

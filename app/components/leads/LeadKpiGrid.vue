@@ -8,7 +8,10 @@ defineProps<{
 </script>
 
 <template>
-  <section class="kpi-grid" aria-label="Indicateurs clés de performance des leads">
+  <section
+    class="kpi-grid"
+    aria-label="Indicateurs clés de performance des leads"
+  >
     <article class="kpi-card">
       <span class="kpi-label">Total Leads</span>
       <span class="kpi-value">{{ total }}</span>

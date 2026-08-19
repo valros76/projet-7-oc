@@ -1,7 +1,7 @@
 import { db } from '~~/server/utils/drizzle'
 import { leads } from '@server/database/schema'
 import { protectRoute } from '@server/utils/auth'
-import { eq, and } from 'drizzle-orm'
+import { eq } from 'drizzle-orm'
 
 export default defineEventHandler(async (event) => {
   const user = protectRoute(event)

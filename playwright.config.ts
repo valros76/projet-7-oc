@@ -1,7 +1,6 @@
 import { fileURLToPath } from 'node:url'
 import { defineConfig, devices } from '@playwright/test'
 import type { ConfigOptions } from '@nuxt/test-utils/playwright'
-import globalSetup from './tests/e2e/global-setup'
 
 export default defineConfig<ConfigOptions>({
   globalSetup: './tests/e2e/global-setup.ts',

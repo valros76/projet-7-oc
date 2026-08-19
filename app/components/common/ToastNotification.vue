@@ -17,15 +17,20 @@ defineEmits(['close'])
       role="status"
       aria-live="polite"
     >
-      <span class="toast-icon" aria-hidden="true">
+      <span
+        class="toast-icon"
+        aria-hidden="true"
+      >
         {{ type === 'error' ? '❌' : type === 'info' ? 'ℹ️' : '✅' }}
       </span>
-      <p class="toast-message">{{ message }}</p>
+      <p class="toast-message">
+        {{ message }}
+      </p>
       <button 
         type="button" 
         class="toast-close" 
-        @click="$emit('close')"
         aria-label="Fermer la notification"
+        @click="$emit('close')"
       >
         ✕
       </button>

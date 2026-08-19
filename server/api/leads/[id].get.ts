@@ -1,5 +1,5 @@
 import { db } from '~~/server/utils/drizzle'
-import { leads, users } from '@server/database/schema'
+import { leads } from '@server/database/schema'
 import { protectRoute } from '@server/utils/auth'
 import { eq, and } from 'drizzle-orm'
 

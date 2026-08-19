@@ -32,52 +32,108 @@ const getStatusBadge = (status: string) => {
       <thead>
         <tr>
           <th>Statut</th>
-          <th v-if="isAdmin">Apporteur</th>
+          <th v-if="isAdmin">
+            Apporteur
+          </th>
           <th>Début estimé</th>
           <th>Société</th>
           <th>Mission</th>
           <th>Contact & Coordonnées</th>
           <th>Commission</th>
-          <th v-if="isAdmin">Actions Rapides</th>
+          <th v-if="isAdmin">
+            Actions Rapides
+          </th>
         </tr>
       </thead>
       <tbody>
-        <tr v-for="lead in leads" :key="lead.id" class="interactive-dashboard-row" @click="emit('view', lead)">
+        <tr
+          v-for="lead in leads"
+          :key="lead.id"
+          class="interactive-dashboard-row"
+          @click="emit('view', lead)"
+        >
           <td data-label="Statut">
-            <span class="badge" :class="getStatusBadge(lead.status).class">
+            <span
+              class="badge"
+              :class="getStatusBadge(lead.status).class"
+            >
               {{ getStatusBadge(lead.status).label }}
             </span>
           </td>
-          <td v-if="isAdmin" data-label="Apporteur">
-            <div class="font-bold">{{ lead.referrerFirstName }} {{ lead.referrerLastName }}</div>
-            <div class="text-muted">{{ lead.referrerEmail }}</div>
+          <td
+            v-if="isAdmin"
+            data-label="Apporteur"
+          >
+            <div class="font-bold">
+              {{ lead.referrerFirstName }} {{ lead.referrerLastName }}
+            </div>
+            <div class="text-muted">
+              {{ lead.referrerEmail }}
+            </div>
           </td>
-          <td data-label="Début estimé">{{ formatDate(lead.missionStartDate) }}</td>
-          <td data-label="Société" class="font-bold">{{ lead.companyName }}</td>
-          <td data-label="Mission">{{ lead.missionTitle }}</td>
+          <td data-label="Début estimé">
+            {{ formatDate(lead.missionStartDate) }}
+          </td>
+          <td
+            data-label="Société"
+            class="font-bold"
+          >
+            {{ lead.companyName }}
+          </td>
+          <td data-label="Mission">
+            {{ lead.missionTitle }}
+          </td>
           <td data-label="Contact & Coordonnées">
             <div class="contact-info-wrapper">
-              <div class="contact-name">{{ lead.contactFirstName }} {{ lead.contactLastName }}</div>
-              <div class="text-muted" v-if="lead.clientEmail">
-                ✉️ <a @click.stop :href="`mailto:${encodeURIComponent(lead.clientEmail)}`">{{ lead.clientEmail }}</a>
+              <div class="contact-name">
+                {{ lead.contactFirstName }} {{ lead.contactLastName }}
               </div>
-              <div class="text-muted" v-if="lead.clientPhone">
-                📞 <a @click.stop :href="`tel:${lead.clientPhone}`">{{ lead.clientPhone }}</a>
+              <div
+                v-if="lead.clientEmail"
+                class="text-muted"
+              >
+                ✉️ <a
+                  :href="`mailto:${encodeURIComponent(lead.clientEmail)}`"
+                  @click.stop
+                >{{ lead.clientEmail }}</a>
+              </div>
+              <div
+                v-if="lead.clientPhone"
+                class="text-muted"
+              >
+                📞 <a
+                  :href="`tel:${lead.clientPhone}`"
+                  @click.stop
+                >{{ lead.clientPhone }}</a>
               </div>
             </div>
           </td>
-          <td data-label="Commission">{{ lead.commissionRate }}%</td>
+          <td data-label="Commission">
+            {{ lead.commissionRate }}%
+          </td>
           
-          <td v-if="isAdmin" data-label="Actions Rapides" @click.stop>
+          <td
+            v-if="isAdmin"
+            data-label="Actions Rapides"
+            @click.stop
+          >
             <select 
               :value="lead.status" 
-              @change="(e: any) => emit('updateStatus', lead.id, e.target.value)"
               class="quick-status-select"
+              @change="(e: any) => emit('updateStatus', lead.id, e.target.value)"
             >
-              <option value="pending">En attente</option>
-              <option value="accepted">Validé</option>
-              <option value="refused">Refusé</option>
-              <option value="finished">Terminé</option>
+              <option value="pending">
+                En attente
+              </option>
+              <option value="accepted">
+                Validé
+              </option>
+              <option value="refused">
+                Refusé
+              </option>
+              <option value="finished">
+                Terminé
+              </option>
             </select>
           </td>
         </tr>

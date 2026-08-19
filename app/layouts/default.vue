@@ -6,7 +6,11 @@ import Navbar from '~/components/layout/Navbar.vue'
   <div class="app-layout">
     <Navbar />
 
-    <main class="main-content" id="main-content" role="main">
+    <main
+      id="main-content"
+      class="main-content"
+      role="main"
+    >
       <slot />
     </main>
   </div>

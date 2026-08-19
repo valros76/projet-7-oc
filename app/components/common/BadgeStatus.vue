@@ -22,7 +22,10 @@ const badgeConfig = computed(() => {
 </script>
 
 <template>
-  <span class="badge" :class="badgeConfig.class">
+  <span
+    class="badge"
+    :class="badgeConfig.class"
+  >
     {{ badgeConfig.label }}
   </span>
 </template>

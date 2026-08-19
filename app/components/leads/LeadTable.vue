@@ -21,32 +21,71 @@ const viewOneLead = (lead: Partial<Lead>) => {
 </script>
 
 <template>
-  <div class="table-responsive-wrapper" role="region" aria-label="Liste des leads" tabindex="0">
-    <div v-if="loading" class="loading-state" aria-live="polite">
+  <div
+    class="table-responsive-wrapper"
+    role="region"
+    aria-label="Liste des leads"
+    tabindex="0"
+  >
+    <div
+      v-if="loading"
+      class="loading-state"
+      aria-live="polite"
+    >
       Chargement des données en cours...
     </div>
 
-    <table v-else class="leads-table">
+    <table
+      v-else
+      class="leads-table"
+    >
       <caption>Tableau récapitulatif des apporteurs d'affaires et de leurs leads</caption>
       <thead>
         <tr>
-          <th scope="col">Société</th>
-          <th scope="col">Mission</th>
-          <th scope="col">Date de soumission</th>
-          <th scope="col">Statut</th>
+          <th scope="col">
+            Société
+          </th>
+          <th scope="col">
+            Mission
+          </th>
+          <th scope="col">
+            Date de soumission
+          </th>
+          <th scope="col">
+            Statut
+          </th>
         </tr>
       </thead>
       <tbody>
-        <tr v-for="lead in leadsList" :key="lead.id" class="lead-row" @click="viewOneLead(lead)">
-          <td data-label="Société" class="font-bold">{{ lead.companyName }}</td>
-          <td data-label="Mission">{{ lead.missionTitle }}</td>
-          <td data-label="Date">{{ formatDate(lead.createdAt) }}</td>
+        <tr
+          v-for="lead in leadsList"
+          :key="lead.id"
+          class="lead-row"
+          @click="viewOneLead(lead)"
+        >
+          <td
+            data-label="Société"
+            class="font-bold"
+          >
+            {{ lead.companyName }}
+          </td>
+          <td data-label="Mission">
+            {{ lead.missionTitle }}
+          </td>
+          <td data-label="Date">
+            {{ formatDate(lead.createdAt) }}
+          </td>
           <td data-label="Statut">
             <BadgeStatus :status="lead.status" />
           </td>
         </tr>
         <tr v-if="leadsList.length === 0">
-          <td colspan="4" class="empty-state">Aucun lead enregistré pour le moment.</td>
+          <td
+            colspan="4"
+            class="empty-state"
+          >
+            Aucun lead enregistré pour le moment.
+          </td>
         </tr>
       </tbody>
     </table>
