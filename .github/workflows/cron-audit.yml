@@ -1,0 +1,25 @@
+name: Periodic Security Audit
+
+on:
+  schedule:
+    - cron: "0 23 * * *"
+    - cron: "0 10 * * *"
+  workflow_dispatch:
+
+jobs:
+  audit-supply-chain:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Install dependencies (without frozen-lockfile)
+        run: bun install
+
+      - name: Audit Dependencies (Supply Chain Security)
+        run: bun audit
