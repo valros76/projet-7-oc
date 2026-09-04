@@ -4,9 +4,6 @@ on:
   push:
     branches: ["dev", "staging", "master"]
 
-  pull_request:
-    branches: ["staging"]
-
 jobs:
 
   # ============================================================
@@ -75,7 +72,9 @@ jobs:
   # ============================================================
   e2e-tests:
     needs: test-and-quality
+
     if: github.ref == 'refs/heads/dev' && github.event_name == 'push'
+
     runs-on: ubuntu-latest
 
     container:
@@ -84,11 +83,14 @@ jobs:
     services:
       mysql:
         image: mysql:8.0
+
         env:
           MYSQL_ROOT_PASSWORD: ${{ secrets.DB_ROOT_PASSWORD }}
           MYSQL_DATABASE: webdevoo_lead
+
         ports:
           - 3306:3306
+
         options: >-
           --health-cmd="mysqladmin ping -h localhost"
           --health-interval=10s
@@ -103,7 +105,8 @@ jobs:
 
       - name: Install system dependencies
         run: |
-          apt-get update && apt-get install -y unzip
+          apt-get update
+          apt-get install -y unzip
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v1
@@ -141,12 +144,49 @@ jobs:
 
 
   # ============================================================
-  # 3. Promotion automatique vers Staging
+  # 3. Validation avant promotion vers Staging
+  #
+  # Ce check est exécuté sur le même commit que dev,
+  # APRÈS les tests qualité et E2E.
+  #
+  # Il correspond au check requis par le Ruleset de staging.
+  # ============================================================
+  staging-validation:
+    needs:
+      - test-and-quality
+      - e2e-tests
+
+    runs-on: ubuntu-latest
+
+    if: github.ref == 'refs/heads/dev' && github.event_name == 'push'
+
+    steps:
+      - name: Staging Validation
+        run: |
+          echo "=========================================="
+          echo "🚀 STAGING - Validation de la version"
+          echo "=========================================="
+          echo "Branche : $GITHUB_REF_NAME"
+          echo "Commit  : $GITHUB_SHA"
+          echo ""
+          echo "✅ Tests qualité validés"
+          echo "✅ Tests unitaires validés"
+          echo "✅ CodeQL validé"
+          echo "✅ SonarCloud validé"
+          echo "✅ Tests E2E Playwright validés"
+          echo ""
+          echo "✅ Version validée pour promotion vers staging"
+          echo "=========================================="
+
+
+  # ============================================================
+  # 4. Promotion automatique DEV → STAGING
   # ============================================================
   auto-promote-to-staging:
     needs:
       - test-and-quality
       - e2e-tests
+      - staging-validation
 
     runs-on: ubuntu-latest
 
@@ -162,6 +202,7 @@ jobs:
 
       - name: Create PR dev → staging
         id: create-pr
+
         env:
           GH_TOKEN: ${{ secrets.GH_PAT }}
 
@@ -178,7 +219,7 @@ jobs:
               --base staging \
               --head dev \
               --title "chore(ci): promotion automatique de dev vers staging" \
-              --body "Promotion automatique déclenchée après validation des tests sur dev.")
+              --body "Promotion automatique après validation complète de la CI sur dev.")
           fi
 
           echo "PR_URL=$PR_URL" >> "$GITHUB_OUTPUT"
@@ -187,28 +228,18 @@ jobs:
           echo "🚀 PR DEV → STAGING"
           echo "=========================================="
           echo "PR : $PR_URL"
+          echo ""
+          echo "✅ staging-validation déjà validé"
           echo "=========================================="
 
 
-      - name: Wait for staging-validation
-        env:
-          GH_TOKEN: ${{ secrets.GH_PAT }}
-          PR_URL: ${{ steps.create-pr.outputs.PR_URL }}
-
-        run: |
-          echo "=========================================="
-          echo "⏳ ATTENTE DE STAGING-VALIDATION"
-          echo "=========================================="
-
-          gh pr checks "$PR_URL" \
-            --watch \
-            --required
-
-          echo "=========================================="
-          echo "✅ STAGING-VALIDATION VALIDÉ"
-          echo "=========================================="
-
-
+      # ----------------------------------------------------------
+      # IMPORTANT :
+      # Pas de gh pr checks --watch --required ici.
+      #
+      # staging-validation a déjà été exécuté sur le même
+      # commit que dev avant la création de la PR.
+      # ----------------------------------------------------------
       - name: Merge dev → staging
         env:
           GH_TOKEN: ${{ secrets.GH_PAT }}
@@ -218,58 +249,54 @@ jobs:
           echo "=========================================="
           echo "🚀 PROMOTION AUTOMATIQUE DEV → STAGING"
           echo "=========================================="
+          echo ""
+          echo "✅ Tests qualité validés"
+          echo "✅ Tests E2E Playwright validés"
+          echo "✅ staging-validation validé"
+          echo ""
+          echo "➡️ Fusion de dev vers staging"
 
           gh pr merge "$PR_URL" \
             --merge \
             --delete-branch=false
 
+          echo ""
           echo "=========================================="
           echo "✅ VERSION PROMUE SUR STAGING"
           echo "=========================================="
 
 
   # ============================================================
-  # 4. Validation Staging
+  # 5. Validation après arrivée sur Staging
   # ============================================================
-  staging-validation:
+  staging-post-merge:
     runs-on: ubuntu-latest
 
-    if: >
-      (github.event_name == 'pull_request' && github.base_ref == 'staging') ||
-      (github.event_name == 'push' && github.ref == 'refs/heads/staging')
+    if: github.ref == 'refs/heads/staging' && github.event_name == 'push'
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Validate staging
+      - name: Staging confirmation
         run: |
           echo "=========================================="
-          echo "🚀 STAGING - Validation de la version"
+          echo "🚀 ARRIVÉE SUR STAGING"
           echo "=========================================="
-          echo "Événement : ${{ github.event_name }}"
-          echo "Branche   : $GITHUB_REF_NAME"
-          echo "Commit    : $GITHUB_SHA"
+          echo "Branche : $GITHUB_REF_NAME"
+          echo "Commit  : $GITHUB_SHA"
           echo ""
-          echo "✅ La version a été validée par la CI sur dev."
-          echo "✅ Validation de l'étape STAGING."
-          echo "=========================================="
-
-      - name: Staging Gate Check
-        run: |
-          echo "=========================================="
-          echo "✅ STAGING VALIDÉ"
-          echo "=========================================="
-          echo "➡️ Autorisation de poursuivre vers master."
+          echo "✅ La version a été promue automatiquement."
+          echo "✅ Les tests ont déjà été validés sur dev."
+          echo "✅ Version disponible sur staging."
           echo "=========================================="
 
 
   # ============================================================
-  # 5. Création de la PR Staging → Master
+  # 6. Création automatique de la PR STAGING → MASTER
+  #
+  # Le merge reste MANUEL.
   # ============================================================
   auto-pr-master:
     needs:
-      - staging-validation
+      - staging-post-merge
 
     runs-on: ubuntu-latest
 
@@ -299,19 +326,21 @@ jobs:
             gh pr create \
               --base master \
               --head staging \
-              --title "release(ci): préparation de la mise en production (staging -> master)" \
+              --title "release(ci): préparation de la mise en production (staging → master)" \
               --body "Validation sur staging réussie. En attente de validation humaine pour le merge vers master."
           fi
 
           echo "=========================================="
           echo "📦 PR STAGING → MASTER"
           echo "=========================================="
-          echo "⏳ Merge manuel requis."
+          echo ""
+          echo "✅ Version validée sur staging"
+          echo "⏳ Merge manuel requis"
           echo "=========================================="
 
 
   # ============================================================
-  # 6. Build & Release sur Master
+  # 7. Build & Release sur Master
   # ============================================================
   production-release:
     runs-on: ubuntu-latest
@@ -336,8 +365,10 @@ jobs:
           echo "✅ Lancement du build et de la release."
           echo "=========================================="
 
+
       - name: Checkout code
         uses: actions/checkout@v4
+
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v1
@@ -345,11 +376,14 @@ jobs:
           bun-version: latest
           cache: true
 
+
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+
       - name: Build Nuxt Application
         run: bun run build
+
 
       - name: Upload production artifact
         uses: actions/upload-artifact@v4
@@ -357,10 +391,12 @@ jobs:
           name: nuxt-production-build
           path: .output/
 
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: "22"
+
 
       - name: Semantic Release
         run: |
