@@ -179,38 +179,36 @@ jobs:
 
 
   # ============================================================
-# 4. Validation Staging
-# ============================================================
-staging-validation:
-  runs-on: ubuntu-latest
+  # 4. Validation Staging
+  # ============================================================
+  staging-validation:
+    runs-on: ubuntu-latest
 
-  if: >
-    (github.event_name == 'pull_request' && github.base_ref == 'staging') ||
-    (github.event_name == 'push' && github.ref == 'refs/heads/staging')
+    if: >
+      (github.event_name == 'pull_request' && github.base_ref == 'staging') ||
+      (github.event_name == 'push' && github.ref == 'refs/heads/staging')
 
-  steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: Validate staging
-      run: |
-        echo "=========================================="
-        echo "🚀 STAGING - Validation de la version"
-        echo "=========================================="
-        echo "Événement : ${{ github.event_name }}"
-        echo "Branche : $GITHUB_REF_NAME"
-        echo "Commit : $GITHUB_SHA"
-        echo ""
-        echo "✅ Validation de l'étape STAGING"
-        echo "✅ La version est candidate pour la préproduction."
-        echo "=========================================="
+      - name: Validate staging
+        run: |
+          echo "=========================================="
+          echo "🚀 STAGING - Validation de la version"
+          echo "=========================================="
+          echo "Branche : $GITHUB_REF_NAME"
+          echo "Commit  : $GITHUB_SHA"
+          echo ""
+          echo "✅ La version a été validée par la CI sur dev."
+          echo "✅ La version est maintenant disponible sur staging."
+          echo "✅ Prêt pour la validation avant production."
+          echo "=========================================="
 
-    - name: Staging Gate Check
-      run: |
-        echo "=========================================="
-        echo "✅ STAGING VALIDÉ"
-        echo "=========================================="
-        echo "➡️ Autorisation de poursuivre vers master."
+      - name: Staging Gate Check
+        run: |
+          echo "✅ STAGING VALIDÉ"
+          echo "➡️ Autorisation de créer la PR vers master."
 
 
   # ============================================================
