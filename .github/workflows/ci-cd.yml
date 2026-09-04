@@ -3,8 +3,9 @@ name: CI/CD Pipeline
 on:
   push:
     branches: ["dev", "staging", "master"]
+
   pull_request:
-    branches: ["dev", "staging"]
+    branches: ["staging"]
 
 jobs:
 
@@ -100,7 +101,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Install system dependencies (unzip)
+      - name: Install system dependencies
         run: |
           apt-get update && apt-get install -y unzip
 
@@ -143,7 +144,10 @@ jobs:
   # 3. Promotion automatique vers Staging
   # ============================================================
   auto-promote-to-staging:
-    needs: [test-and-quality, e2e-tests]
+    needs:
+      - test-and-quality
+      - e2e-tests
+
     runs-on: ubuntu-latest
 
     if: github.ref == 'refs/heads/dev' && github.event_name == 'push'
@@ -156,9 +160,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Create and Enable Auto-Merge to Staging
+      - name: Create PR dev → staging
+        id: create-pr
         env:
           GH_TOKEN: ${{ secrets.GH_PAT }}
+
         run: |
           PR_URL=$(gh pr list \
             --base staging \
@@ -175,7 +181,51 @@ jobs:
               --body "Promotion automatique déclenchée après validation des tests sur dev.")
           fi
 
-          gh pr merge "$PR_URL" --auto --merge
+          echo "PR_URL=$PR_URL" >> "$GITHUB_OUTPUT"
+
+          echo "=========================================="
+          echo "🚀 PR DEV → STAGING"
+          echo "=========================================="
+          echo "PR : $PR_URL"
+          echo "=========================================="
+
+
+      - name: Wait for staging-validation
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+          PR_URL: ${{ steps.create-pr.outputs.PR_URL }}
+
+        run: |
+          echo "=========================================="
+          echo "⏳ ATTENTE DE STAGING-VALIDATION"
+          echo "=========================================="
+
+          gh pr checks "$PR_URL" \
+            --watch \
+            --required
+
+          echo "=========================================="
+          echo "✅ STAGING-VALIDATION VALIDÉ"
+          echo "=========================================="
+
+
+      - name: Merge dev → staging
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+          PR_URL: ${{ steps.create-pr.outputs.PR_URL }}
+
+        run: |
+          echo "=========================================="
+          echo "🚀 PROMOTION AUTOMATIQUE DEV → STAGING"
+          echo "=========================================="
+
+          gh pr merge "$PR_URL" \
+            --merge \
+            --delete-branch=false
+
+          echo "=========================================="
+          echo "✅ VERSION PROMUE SUR STAGING"
+          echo "=========================================="
 
 
   # ============================================================
@@ -197,25 +247,30 @@ jobs:
           echo "=========================================="
           echo "🚀 STAGING - Validation de la version"
           echo "=========================================="
-          echo "Branche : $GITHUB_REF_NAME"
-          echo "Commit  : $GITHUB_SHA"
+          echo "Événement : ${{ github.event_name }}"
+          echo "Branche   : $GITHUB_REF_NAME"
+          echo "Commit    : $GITHUB_SHA"
           echo ""
           echo "✅ La version a été validée par la CI sur dev."
-          echo "✅ La version est maintenant disponible sur staging."
-          echo "✅ Prêt pour la validation avant production."
+          echo "✅ Validation de l'étape STAGING."
           echo "=========================================="
 
       - name: Staging Gate Check
         run: |
+          echo "=========================================="
           echo "✅ STAGING VALIDÉ"
-          echo "➡️ Autorisation de créer la PR vers master."
+          echo "=========================================="
+          echo "➡️ Autorisation de poursuivre vers master."
+          echo "=========================================="
 
 
   # ============================================================
   # 5. Création de la PR Staging → Master
   # ============================================================
   auto-pr-master:
-    needs: [staging-validation]
+    needs:
+      - staging-validation
+
     runs-on: ubuntu-latest
 
     if: github.ref == 'refs/heads/staging' && github.event_name == 'push'
@@ -228,9 +283,10 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Create PR to Master (Manual Merge)
+      - name: Create PR to Master
         env:
           GH_TOKEN: ${{ secrets.GH_PAT }}
+
         run: |
           PR_URL=$(gh pr list \
             --base master \
@@ -246,6 +302,12 @@ jobs:
               --title "release(ci): préparation de la mise en production (staging -> master)" \
               --body "Validation sur staging réussie. En attente de validation humaine pour le merge vers master."
           fi
+
+          echo "=========================================="
+          echo "📦 PR STAGING → MASTER"
+          echo "=========================================="
+          echo "⏳ Merge manuel requis."
+          echo "=========================================="
 
 
   # ============================================================
@@ -269,6 +331,7 @@ jobs:
           echo "=========================================="
           echo "Commit  : $GITHUB_SHA"
           echo "Branche : $GITHUB_REF_NAME"
+          echo ""
           echo "✅ Validation humaine effectuée."
           echo "✅ Lancement du build et de la release."
           echo "=========================================="
@@ -300,6 +363,14 @@ jobs:
           node-version: "22"
 
       - name: Semantic Release
-        run: npx -p semantic-release -p @semantic-release/commit-analyzer -p @semantic-release/release-notes-generator -p @semantic-release/changelog -p @semantic-release/git -p @semantic-release/github semantic-release
+        run: |
+          npx -p semantic-release \
+            -p @semantic-release/commit-analyzer \
+            -p @semantic-release/release-notes-generator \
+            -p @semantic-release/changelog \
+            -p @semantic-release/git \
+            -p @semantic-release/github \
+            semantic-release
+
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
