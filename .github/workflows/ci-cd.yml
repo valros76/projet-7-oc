@@ -3,21 +3,31 @@ name: CI/CD Pipeline
 on:
   push:
     branches: ["dev", "staging", "master"]
-  pull_request:
-    branches: ["dev", "staging", "master"]
-  schedule:
-    - cron: "0 23 * * *" # Timezone UTC, donc lancement à 01h00 du matin l'été et à 00h00 l'hiver.
-    - cron: "0 10 * * *" # Timezone UTC, donc lancement à 12h00 l'été et à 11h00 l'hiver.
 
 jobs:
-  # 1. Tests unitaires, type-check & lint
-  test-and-lint:
+
+  # ============================================================
+  # 1. Tests & Qualité - uniquement sur dev
+  # ============================================================
+  test-and-quality:
+    if: github.ref == 'refs/heads/dev' && github.event_name == 'push'
     runs-on: ubuntu-latest
+
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: javascript, typescript
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v1
@@ -35,35 +45,57 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      - name: Audit Dependencies (Supply Chain Security)
-        run: bun audit || true
-
       - name: Type check & Lint
         run: |
           npx tsc --noEmit
           bun run lint
 
-      - name: Run Unit Tests
+      - name: Run Unit Tests with Coverage
         run: bun run test:unit:coverage
 
-  # 2. Tests E2E Playwright (Version 1.61.1 alignée)
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarcloud-github-action@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          args: >
+            -Dsonar.organization=valros76
+            -Dsonar.projectKey=valros76_webdevoo-lead
+
+
+  # ============================================================
+  # 2. Tests E2E Playwright - uniquement sur dev
+  # ============================================================
   e2e-tests:
-    needs: test-and-lint
+    needs: test-and-quality
+
+    if: github.ref == 'refs/heads/dev' && github.event_name == 'push'
+
     runs-on: ubuntu-latest
 
-    # Image officielle Playwright alignée sur la version ^1.62.1
     container:
       image: mcr.microsoft.com/playwright:v1.62.1-jammy
 
     services:
       mysql:
         image: mysql:8.0
+
         env:
           MYSQL_ROOT_PASSWORD: ${{ secrets.DB_ROOT_PASSWORD }}
           MYSQL_DATABASE: webdevoo_lead
+
         ports:
           - 3306:3306
-        options: --health-cmd="mysqladmin ping -h localhost" --health-interval=10s --health-timeout=5s --health-retries=3
+
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
 
     steps:
       - name: Checkout code
@@ -71,9 +103,10 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Install system dependencies (unzip)
+      - name: Install system dependencies
         run: |
-          apt-get update && apt-get install -y unzip
+          apt-get update
+          apt-get install -y unzip
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v1
@@ -109,53 +142,233 @@ jobs:
           DB_PASSWORD: ${{ secrets.DB_ROOT_PASSWORD }}
           DB_NAME: webdevoo_lead
 
-  # 3. Promotion automatique de dev vers staging si les tests passent
-  push-to-staging:
-    needs: [test-and-lint, e2e-tests]
+
+  # ============================================================
+  # 3. Validation avant promotion vers Staging
+  #
+  # Ce check est exécuté sur le même commit que dev,
+  # APRÈS les tests qualité et E2E.
+  #
+  # Il correspond au check requis par le Ruleset de staging.
+  # ============================================================
+  staging-validation:
+    needs:
+      - test-and-quality
+      - e2e-tests
+
     runs-on: ubuntu-latest
+
     if: github.ref == 'refs/heads/dev' && github.event_name == 'push'
+
+    steps:
+      - name: Staging Validation
+        run: |
+          echo "=========================================="
+          echo "🚀 STAGING - Validation de la version"
+          echo "=========================================="
+          echo "Branche : $GITHUB_REF_NAME"
+          echo "Commit  : $GITHUB_SHA"
+          echo ""
+          echo "✅ Tests qualité validés"
+          echo "✅ Tests unitaires validés"
+          echo "✅ CodeQL validé"
+          echo "✅ SonarCloud validé"
+          echo "✅ Tests E2E Playwright validés"
+          echo ""
+          echo "✅ Version validée pour promotion vers staging"
+          echo "=========================================="
+
+
+  # ============================================================
+  # 4. Promotion automatique DEV → STAGING
+  # ============================================================
+  auto-promote-to-staging:
+    needs:
+      - test-and-quality
+      - e2e-tests
+      - staging-validation
+
+    runs-on: ubuntu-latest
+
+    if: github.ref == 'refs/heads/dev' && github.event_name == 'push'
+
+    permissions:
+      contents: write
+      pull-requests: write
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
-      - name: Push to staging branch
-        uses: ad-m/github-push-action@master
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          branch: staging
-          force: true
+      - name: Create PR dev → staging
+        id: create-pr
 
-  # 4. Promotion automatique de staging vers master si les tests passent sur staging
-  push-to-master:
-    needs: [test-and-lint, e2e-tests]
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+
+        run: |
+          PR_URL=$(gh pr list \
+            --base staging \
+            --head dev \
+            --state open \
+            --json url \
+            --jq '.[0].url')
+
+          if [ -z "$PR_URL" ]; then
+            PR_URL=$(gh pr create \
+              --base staging \
+              --head dev \
+              --title "chore(ci): promotion automatique de dev vers staging" \
+              --body "Promotion automatique après validation complète de la CI sur dev.")
+          fi
+
+          echo "PR_URL=$PR_URL" >> "$GITHUB_OUTPUT"
+
+          echo "=========================================="
+          echo "🚀 PR DEV → STAGING"
+          echo "=========================================="
+          echo "PR : $PR_URL"
+          echo ""
+          echo "✅ staging-validation déjà validé"
+          echo "=========================================="
+
+
+      # ----------------------------------------------------------
+      # IMPORTANT :
+      # Pas de gh pr checks --watch --required ici.
+      #
+      # staging-validation a déjà été exécuté sur le même
+      # commit que dev avant la création de la PR.
+      # ----------------------------------------------------------
+      - name: Merge dev → staging
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+          PR_URL: ${{ steps.create-pr.outputs.PR_URL }}
+
+        run: |
+          echo "=========================================="
+          echo "🚀 PROMOTION AUTOMATIQUE DEV → STAGING"
+          echo "=========================================="
+          echo ""
+          echo "✅ Tests qualité validés"
+          echo "✅ Tests E2E Playwright validés"
+          echo "✅ staging-validation validé"
+          echo ""
+          echo "➡️ Fusion de dev vers staging"
+
+          gh pr merge "$PR_URL" \
+            --merge \
+            --delete-branch=false
+
+          echo ""
+          echo "=========================================="
+          echo "✅ VERSION PROMUE SUR STAGING"
+          echo "=========================================="
+
+
+  # ============================================================
+  # 5. Validation après arrivée sur Staging
+  # ============================================================
+  staging-post-merge:
     runs-on: ubuntu-latest
+
     if: github.ref == 'refs/heads/staging' && github.event_name == 'push'
+
+    steps:
+      - name: Staging confirmation
+        run: |
+          echo "=========================================="
+          echo "🚀 ARRIVÉE SUR STAGING"
+          echo "=========================================="
+          echo "Branche : $GITHUB_REF_NAME"
+          echo "Commit  : $GITHUB_SHA"
+          echo ""
+          echo "✅ La version a été promue automatiquement."
+          echo "✅ Les tests ont déjà été validés sur dev."
+          echo "✅ Version disponible sur staging."
+          echo "=========================================="
+
+
+  # ============================================================
+  # 6. Création automatique de la PR STAGING → MASTER
+  #
+  # Le merge reste MANUEL.
+  # ============================================================
+  auto-pr-master:
+    needs:
+      - staging-post-merge
+
+    runs-on: ubuntu-latest
+
+    if: github.ref == 'refs/heads/staging' && github.event_name == 'push'
+
+    permissions:
+      contents: write
+      pull-requests: write
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
-      - name: Push to master branch
-        uses: ad-m/github-push-action@master
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          branch: master
-          force: true
+      - name: Create PR to Master
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
 
-  # 5. Build et Release (exécuté sur master après la synchronisation)
-  build-and-release:
-    needs: [push-to-master]
+        run: |
+          PR_URL=$(gh pr list \
+            --base master \
+            --head staging \
+            --state open \
+            --json url \
+            --jq '.[0].url')
+
+          if [ -z "$PR_URL" ]; then
+            gh pr create \
+              --base master \
+              --head staging \
+              --title "release(ci): préparation de la mise en production (staging → master)" \
+              --body "Validation sur staging réussie. En attente de validation humaine pour le merge vers master."
+          fi
+
+          echo "=========================================="
+          echo "📦 PR STAGING → MASTER"
+          echo "=========================================="
+          echo ""
+          echo "✅ Version validée sur staging"
+          echo "⏳ Merge manuel requis"
+          echo "=========================================="
+
+
+  # ============================================================
+  # 7. Build & Release sur Master
+  # ============================================================
+  production-release:
     runs-on: ubuntu-latest
+
+    if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+
     permissions:
       contents: write
       issues: write
       pull-requests: write
+
     steps:
+      - name: Production Gate Check
+        run: |
+          echo "=========================================="
+          echo "🚀 ARRIVÉE SUR MASTER"
+          echo "=========================================="
+          echo "Commit  : $GITHUB_SHA"
+          echo "Branche : $GITHUB_REF_NAME"
+          echo ""
+          echo "✅ Validation humaine effectuée."
+          echo "✅ Lancement du build et de la release."
+          echo "=========================================="
+
+
       - name: Checkout code
         uses: actions/checkout@v4
+
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v1
@@ -163,11 +376,14 @@ jobs:
           bun-version: latest
           cache: true
 
+
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+
       - name: Build Nuxt Application
         run: bun run build
+
 
       - name: Upload production artifact
         uses: actions/upload-artifact@v4
@@ -175,12 +391,22 @@ jobs:
           name: nuxt-production-build
           path: .output/
 
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: "22"
 
+
       - name: Semantic Release
-        run: npx -p semantic-release -p @semantic-release/commit-analyzer -p @semantic-release/release-notes-generator -p @semantic-release/changelog -p @semantic-release/git -p @semantic-release/github semantic-release
+        run: |
+          npx -p semantic-release \
+            -p @semantic-release/commit-analyzer \
+            -p @semantic-release/release-notes-generator \
+            -p @semantic-release/changelog \
+            -p @semantic-release/git \
+            -p @semantic-release/github \
+            semantic-release
+
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

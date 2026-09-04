@@ -1,9 +1,30 @@
-node_modules
-.nuxt
-.output
-.git
-.env
+# Dépendances et builds locaux
+node_modules/
+.output/
+dist/
+build/
+.next/
+.nuxt/
+
+# Fichiers sensibles et secrets
+.env*
+*.secret
+*.key
+*.pem
+*.crt
+*.log
+*.sqlite
+*.db
+
+# Fichiers système et Git
+.git/
+.gitignore
 .DS_Store
-Dockerfile
-docker-compose.yml
+*.swp
+
+# Docker & CI/CD
+Dockerfile*
+docker-compose*
+.dockerignore
+.github/
 README.md
