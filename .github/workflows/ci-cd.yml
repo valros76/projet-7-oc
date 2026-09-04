@@ -7,7 +7,7 @@ on:
     branches: ["dev", "staging", "master"]
 
 jobs:
-  # 1. Tests unitaires, type-check, lint, couverture & Sécurité statique (SonarCloud & CodeQL)
+  # 1. Tests & Qualité (S'exécute sur toutes les branches et PR autorisées)
   test-and-quality:
     runs-on: ubuntu-latest
     permissions:
@@ -46,17 +46,21 @@ jobs:
           npx tsc --noEmit
           bun run lint
 
-      - name: Run Unit Tests with Coverage (Hard stop if thresholds fail)
+      - name: Run Unit Tests with Coverage
         run: bun run test:unit:coverage
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
 
-      - name: SonarCloud Scan (Code smells, duplication & technical debt)
+      - name: SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@master
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          args: >
+            -Dsonar.organization=valros76
+            -Dsonar.projectKey=valros76_webdevoo-lead
 
   # 2. Tests E2E Playwright
   e2e-tests:
@@ -118,7 +122,29 @@ jobs:
           DB_PASSWORD: ${{ secrets.DB_ROOT_PASSWORD }}
           DB_NAME: webdevoo_lead
 
-  # 3. Validation et étape Staging
+  # 3. Promotion automatique vers Staging (uniquement sur push dev)
+  auto-promote-to-staging:
+    needs: [test-and-quality, e2e-tests]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/dev' && github.event_name == 'push'
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Create and Enable Auto-Merge to Staging
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PR_URL=$(gh pr list --base staging --head dev --state open --json url --jq '.[0].url')
+          if [ -z "$PR_URL" ]; then
+            PR_URL=$(gh pr create --base staging --head dev --title "chore(ci): promotion automatique de dev vers staging" --body "Promotion automatique déclenchée après validation des tests sur dev.")
+          fi
+          gh pr merge "$PR_URL" --auto --merge
+
+  # 4. Validation sur Staging (uniquement sur push staging)
   staging-validation:
     needs: [test-and-quality, e2e-tests]
     runs-on: ubuntu-latest
@@ -128,7 +154,28 @@ jobs:
         run: |
           echo "hello ! Validation pour aller vers master."
 
-  # 4. Master / Mise en production et Semantic Release
+  # 5. Création de la PR de Staging vers Master (uniquement sur push staging)
+  auto-pr-master:
+    needs: [staging-validation]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/staging' && github.event_name == 'push'
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Create PR to Master (Manual Merge)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PR_URL=$(gh pr list --base master --head staging --state open --json url --jq '.[0].url')
+          if [ -z "$PR_URL" ]; then
+            gh pr create --base master --head staging --title "release(ci): préparation de la mise en production (staging -> master)" --body "Validation sur staging réussie. En attente de validation humaine pour le merge vers master."
+          fi
+
+  # 6. Build et Release sur Master (uniquement sur push master, protégé par les tests)
   production-release:
     needs: [test-and-quality, e2e-tests]
     runs-on: ubuntu-latest
@@ -171,5 +218,4 @@ jobs:
       - name: Semantic Release
         run: npx -p semantic-release -p @semantic-release/commit-analyzer -p @semantic-release/release-notes-generator -p @semantic-release/changelog -p @semantic-release/git -p @semantic-release/github semantic-release
         env:
-        
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
