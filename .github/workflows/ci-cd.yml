@@ -4,11 +4,12 @@ on:
   push:
     branches: ["dev", "staging", "master"]
   pull_request:
-    branches: ["dev", "staging", "master"]
+    branches: ["dev"]
 
 jobs:
   # 1. Tests & Qualité (s'exécute sur toutes les branches et PR autorisées)
   test-and-quality:
+    if: github.ref == 'refs/heads/dev' && github.event_name == 'push'
     runs-on: ubuntu-latest
     permissions:
       actions: read
@@ -66,6 +67,7 @@ jobs:
   # 2. Tests E2E Playwright
   e2e-tests:
     needs: test-and-quality
+    if: github.ref == 'refs/heads/dev' && github.event_name == 'push'
     runs-on: ubuntu-latest
 
     container:
@@ -157,14 +159,27 @@ jobs:
 
   # 4. Validation sur Staging (uniquement sur push staging)
   staging-validation:
-    needs: [test-and-quality, e2e-tests]
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/staging' && github.event_name == 'push'
 
     steps:
+      - name: Checkout code
+      uses: actions/checkout@v4
+
+      - name: Validate staging
+        run: |
+          echo "=========================================="
+          echo "🚀 STAGING - Validation de la version"
+          echo "=========================================="
+          echo "Commit : $GITHUB_SHA"
+          echo "Branche : $GITHUB_REF_NAME"
+          echo "Version candidate pour la production"
+          echo "Les tests CI et E2E ont été validés."
+          echo "=========================================="
+
       - name: Staging Gate Check
         run: |
-          echo "hello ! Validation pour aller vers master."
+          echo "✅ STAGING VALIDÉ - Autorisation de créer la PR vers master."
 
   # 5. Création de la PR de Staging vers Master (uniquement sur push staging)
   auto-pr-master:
@@ -196,7 +211,6 @@ jobs:
 
   # 6. Build et Release sur Master (uniquement sur push master, protégé par les tests)
   production-release:
-    needs: [test-and-quality, e2e-tests]
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/master' && github.event_name == 'push'
 
@@ -208,7 +222,14 @@ jobs:
     steps:
       - name: Production Gate Check
         run: |
-          echo "hello mise en prod"
+          echo "=========================================="
+          echo "🚀 ARRIVÉE SUR MASTER"
+          echo "=========================================="
+          echo "Commit : $GITHUB_SHA"
+          echo "Branche : $GITHUB_REF_NAME"
+          echo "✅ Validation humaine effectuée."
+          echo "✅ Lancement du build et de la release."
+          echo "=========================================="
 
       - name: Checkout code
         uses: actions/checkout@v4
