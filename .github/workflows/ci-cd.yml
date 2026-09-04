@@ -7,13 +7,14 @@ on:
     branches: ["dev", "staging", "master"]
 
 jobs:
-  # 1. Tests & Qualité (S'exécute sur toutes les branches et PR autorisées)
+  # 1. Tests & Qualité (s'exécute sur toutes les branches et PR autorisées)
   test-and-quality:
     runs-on: ubuntu-latest
     permissions:
       actions: read
       contents: read
       security-events: write
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -66,8 +67,10 @@ jobs:
   e2e-tests:
     needs: test-and-quality
     runs-on: ubuntu-latest
+
     container:
       image: mcr.microsoft.com/playwright:v1.62.1-jammy
+
     services:
       mysql:
         image: mysql:8.0
@@ -127,21 +130,29 @@ jobs:
     needs: [test-and-quality, e2e-tests]
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/dev' && github.event_name == 'push'
+
     permissions:
       contents: write
       pull-requests: write
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
       - name: Create and Enable Auto-Merge to Staging
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_PAT }}
         run: |
           PR_URL=$(gh pr list --base staging --head dev --state open --json url --jq '.[0].url')
+
           if [ -z "$PR_URL" ]; then
-            PR_URL=$(gh pr create --base staging --head dev --title "chore(ci): promotion automatique de dev vers staging" --body "Promotion automatique déclenchée après validation des tests sur dev.")
+            PR_URL=$(gh pr create \
+              --base staging \
+              --head dev \
+              --title "chore(ci): promotion automatique de dev vers staging" \
+              --body "Promotion automatique déclenchée après validation des tests sur dev.")
           fi
+
           gh pr merge "$PR_URL" --auto --merge
 
   # 4. Validation sur Staging (uniquement sur push staging)
@@ -149,6 +160,7 @@ jobs:
     needs: [test-and-quality, e2e-tests]
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/staging' && github.event_name == 'push'
+
     steps:
       - name: Staging Gate Check
         run: |
@@ -159,20 +171,27 @@ jobs:
     needs: [staging-validation]
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/staging' && github.event_name == 'push'
+
     permissions:
       contents: write
       pull-requests: write
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
       - name: Create PR to Master (Manual Merge)
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_PAT }}
         run: |
           PR_URL=$(gh pr list --base master --head staging --state open --json url --jq '.[0].url')
+
           if [ -z "$PR_URL" ]; then
-            gh pr create --base master --head staging --title "release(ci): préparation de la mise en production (staging -> master)" --body "Validation sur staging réussie. En attente de validation humaine pour le merge vers master."
+            gh pr create \
+              --base master \
+              --head staging \
+              --title "release(ci): préparation de la mise en production (staging -> master)" \
+              --body "Validation sur staging réussie. En attente de validation humaine pour le merge vers master."
           fi
 
   # 6. Build et Release sur Master (uniquement sur push master, protégé par les tests)
@@ -180,10 +199,12 @@ jobs:
     needs: [test-and-quality, e2e-tests]
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+
     permissions:
       contents: write
       issues: write
       pull-requests: write
+
     steps:
       - name: Production Gate Check
         run: |
