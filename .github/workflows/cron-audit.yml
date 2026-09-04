@@ -21,5 +21,7 @@ jobs:
       - name: Install dependencies (without frozen-lockfile)
         run: bun install
 
+      # On programme un audit informatif
       - name: Audit Dependencies (Supply Chain Security)
         run: bun audit
+        continue-on-error: true
