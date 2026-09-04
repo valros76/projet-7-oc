@@ -4,13 +4,17 @@ on:
   push:
     branches: ["dev", "staging", "master"]
   pull_request:
-    branches: ["dev"]
+    branches: ["dev", "staging"]
 
 jobs:
-  # 1. Tests & Qualité (s'exécute sur toutes les branches et PR autorisées)
+
+  # ============================================================
+  # 1. Tests & Qualité - uniquement sur dev
+  # ============================================================
   test-and-quality:
     if: github.ref == 'refs/heads/dev' && github.event_name == 'push'
     runs-on: ubuntu-latest
+
     permissions:
       actions: read
       contents: read
@@ -64,7 +68,10 @@ jobs:
             -Dsonar.organization=valros76
             -Dsonar.projectKey=valros76_webdevoo-lead
 
-  # 2. Tests E2E Playwright
+
+  # ============================================================
+  # 2. Tests E2E Playwright - uniquement sur dev
+  # ============================================================
   e2e-tests:
     needs: test-and-quality
     if: github.ref == 'refs/heads/dev' && github.event_name == 'push'
@@ -81,7 +88,11 @@ jobs:
           MYSQL_DATABASE: webdevoo_lead
         ports:
           - 3306:3306
-        options: --health-cmd="mysqladmin ping -h localhost" --health-interval=10s --health-timeout=5s --health-retries=3
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
 
     steps:
       - name: Checkout code
@@ -127,10 +138,14 @@ jobs:
           DB_PASSWORD: ${{ secrets.DB_ROOT_PASSWORD }}
           DB_NAME: webdevoo_lead
 
-  # 3. Promotion automatique vers Staging (uniquement sur push dev)
+
+  # ============================================================
+  # 3. Promotion automatique vers Staging
+  # ============================================================
   auto-promote-to-staging:
     needs: [test-and-quality, e2e-tests]
     runs-on: ubuntu-latest
+
     if: github.ref == 'refs/heads/dev' && github.event_name == 'push'
 
     permissions:
@@ -145,7 +160,12 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GH_PAT }}
         run: |
-          PR_URL=$(gh pr list --base staging --head dev --state open --json url --jq '.[0].url')
+          PR_URL=$(gh pr list \
+            --base staging \
+            --head dev \
+            --state open \
+            --json url \
+            --jq '.[0].url')
 
           if [ -z "$PR_URL" ]; then
             PR_URL=$(gh pr create \
@@ -157,34 +177,49 @@ jobs:
 
           gh pr merge "$PR_URL" --auto --merge
 
-  # 4. Validation sur Staging (uniquement sur push staging)
-  staging-validation:
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/staging' && github.event_name == 'push'
 
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+  # ============================================================
+# 4. Validation Staging
+# ============================================================
+staging-validation:
+  runs-on: ubuntu-latest
 
-      - name: Validate staging
-        run: |
-          echo "=========================================="
-          echo "🚀 STAGING - Validation de la version"
-          echo "=========================================="
-          echo "Commit : $GITHUB_SHA"
-          echo "Branche : $GITHUB_REF_NAME"
-          echo "Version candidate pour la production"
-          echo "Les tests CI et E2E ont été validés."
-          echo "=========================================="
+  if: >
+    (github.event_name == 'pull_request' && github.base_ref == 'staging') ||
+    (github.event_name == 'push' && github.ref == 'refs/heads/staging')
 
-      - name: Staging Gate Check
-        run: |
-          echo "✅ STAGING VALIDÉ - Autorisation de créer la PR vers master."
+  steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
 
-  # 5. Création de la PR de Staging vers Master (uniquement sur push staging)
+    - name: Validate staging
+      run: |
+        echo "=========================================="
+        echo "🚀 STAGING - Validation de la version"
+        echo "=========================================="
+        echo "Événement : ${{ github.event_name }}"
+        echo "Branche : $GITHUB_REF_NAME"
+        echo "Commit : $GITHUB_SHA"
+        echo ""
+        echo "✅ Validation de l'étape STAGING"
+        echo "✅ La version est candidate pour la préproduction."
+        echo "=========================================="
+
+    - name: Staging Gate Check
+      run: |
+        echo "=========================================="
+        echo "✅ STAGING VALIDÉ"
+        echo "=========================================="
+        echo "➡️ Autorisation de poursuivre vers master."
+
+
+  # ============================================================
+  # 5. Création de la PR Staging → Master
+  # ============================================================
   auto-pr-master:
     needs: [staging-validation]
     runs-on: ubuntu-latest
+
     if: github.ref == 'refs/heads/staging' && github.event_name == 'push'
 
     permissions:
@@ -199,7 +234,12 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GH_PAT }}
         run: |
-          PR_URL=$(gh pr list --base master --head staging --state open --json url --jq '.[0].url')
+          PR_URL=$(gh pr list \
+            --base master \
+            --head staging \
+            --state open \
+            --json url \
+            --jq '.[0].url')
 
           if [ -z "$PR_URL" ]; then
             gh pr create \
@@ -209,9 +249,13 @@ jobs:
               --body "Validation sur staging réussie. En attente de validation humaine pour le merge vers master."
           fi
 
-  # 6. Build et Release sur Master (uniquement sur push master, protégé par les tests)
+
+  # ============================================================
+  # 6. Build & Release sur Master
+  # ============================================================
   production-release:
     runs-on: ubuntu-latest
+
     if: github.ref == 'refs/heads/master' && github.event_name == 'push'
 
     permissions:
@@ -225,7 +269,7 @@ jobs:
           echo "=========================================="
           echo "🚀 ARRIVÉE SUR MASTER"
           echo "=========================================="
-          echo "Commit : $GITHUB_SHA"
+          echo "Commit  : $GITHUB_SHA"
           echo "Branche : $GITHUB_REF_NAME"
           echo "✅ Validation humaine effectuée."
           echo "✅ Lancement du build et de la release."
